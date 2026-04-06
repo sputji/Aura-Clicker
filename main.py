@@ -83,8 +83,10 @@ class AuraClickerApplication:
             on_open_hotkeys=self.open_hotkey_settings,
             on_open_key_presser=self.open_key_presser_window,
             on_open_advanced=self.open_advanced_window,
+            on_language_change=self.change_language,
         )
         self.main_window.set_history(self.history.get_events())
+        self.main_window.update_ui_language()
 
     def _register_hotkeys(self) -> None:
         callbacks = {
@@ -150,6 +152,7 @@ class AuraClickerApplication:
             on_save_state=self._persist_state,
         )
         self.advanced_window.set_history(self.history.get_events())
+        self.advanced_window.update_ui_language()
         self._bring_window_to_front(self.advanced_window)
 
     def open_key_presser_window(self) -> None:
@@ -165,6 +168,7 @@ class AuraClickerApplication:
             on_save=self.save_key_settings,
         )
         self.key_window.set_history(self.history.get_events())
+        self.key_window.update_ui_language()
         self._bring_window_to_front(self.key_window)
 
     def start_advanced(self, config: dict, sequence: list[dict], status_callback) -> None:
@@ -365,6 +369,16 @@ class AuraClickerApplication:
 
     def _persist_state(self) -> None:
         self.settings_store.save(self.state)
+
+    def change_language(self, language: str) -> None:
+        self.state.current_language = "en" if language == "en" else "fr"
+        self._persist_state()
+        if self.main_window:
+            self.main_window.update_ui_language()
+        if self.advanced_window and self.advanced_window.winfo_exists():
+            self.advanced_window.update_ui_language()
+        if self.key_window and self.key_window.winfo_exists():
+            self.key_window.update_ui_language()
 
     def _broadcast_history(self, line: str) -> None:
         if self.main_window:

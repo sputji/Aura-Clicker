@@ -3,6 +3,7 @@ from __future__ import annotations
 import customtkinter as ctk
 
 from ..capture import capture_mouse_position
+from ..translations import get_text
 from ..utils import safe_int
 
 
@@ -31,6 +32,7 @@ class MainWindow(ctk.CTkFrame):
         on_open_hotkeys,
         on_open_key_presser,
         on_open_advanced,
+        on_language_change,
     ):
         super().__init__(master)
         self._state = state
@@ -43,6 +45,7 @@ class MainWindow(ctk.CTkFrame):
         self._on_open_hotkeys = on_open_hotkeys
         self._on_open_key_presser = on_open_key_presser
         self._on_open_advanced = on_open_advanced
+        self._on_language_change = on_language_change
 
         self.pack(fill="both", expand=True, padx=14, pady=12)
 
@@ -56,28 +59,46 @@ class MainWindow(ctk.CTkFrame):
         interval_frame = ctk.CTkFrame(self)
         interval_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
-        ctk.CTkLabel(interval_frame, text="Intervalle de clic", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, columnspan=8, sticky="w", padx=14, pady=(12, 8))
+        self.interval_title_label = ctk.CTkLabel(interval_frame, text="", font=ctk.CTkFont(size=18, weight="bold"))
+        self.interval_title_label.grid(row=0, column=0, columnspan=6, sticky="w", padx=14, pady=(12, 8))
 
-        ctk.CTkLabel(interval_frame, text="Heures").grid(row=1, column=0, padx=(14, 4), pady=(0, 12))
+        self.language_label = ctk.CTkLabel(interval_frame, text="")
+        self.language_label.grid(row=0, column=6, sticky="e", padx=(6, 4), pady=(12, 8))
+        self.language_menu = ctk.CTkOptionMenu(
+            interval_frame,
+            values=["Français", "English"],
+            width=120,
+            command=self._on_language_selected,
+        )
+        self.language_menu.grid(row=0, column=7, sticky="e", padx=(0, 14), pady=(12, 8))
+
+        self.hours_label = ctk.CTkLabel(interval_frame, text="")
+        self.hours_label.grid(row=1, column=0, padx=(14, 4), pady=(0, 12))
         self.h_entry = self._int_entry(interval_frame, 1, 1)
 
-        ctk.CTkLabel(interval_frame, text="Minutes").grid(row=1, column=2, padx=(6, 4), pady=(0, 12))
+        self.minutes_label = ctk.CTkLabel(interval_frame, text="")
+        self.minutes_label.grid(row=1, column=2, padx=(6, 4), pady=(0, 12))
         self.m_entry = self._int_entry(interval_frame, 1, 3)
 
-        ctk.CTkLabel(interval_frame, text="Secondes").grid(row=1, column=4, padx=(6, 4), pady=(0, 12))
+        self.seconds_label = ctk.CTkLabel(interval_frame, text="")
+        self.seconds_label.grid(row=1, column=4, padx=(6, 4), pady=(0, 12))
         self.s_entry = self._int_entry(interval_frame, 1, 5)
 
-        ctk.CTkLabel(interval_frame, text="Millisecondes").grid(row=1, column=6, padx=(6, 4), pady=(0, 12))
+        self.milliseconds_label = ctk.CTkLabel(interval_frame, text="")
+        self.milliseconds_label.grid(row=1, column=6, padx=(6, 4), pady=(0, 12))
         self.ms_entry = self._int_entry(interval_frame, 1, 7)
 
         repeat_frame = ctk.CTkFrame(self)
         repeat_frame.grid(row=1, column=0, sticky="nsew", padx=(0, 6), pady=8)
 
-        ctk.CTkLabel(repeat_frame, text="Répétition", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, columnspan=2, sticky="w", padx=14, pady=(12, 8))
+        self.repeat_title_label = ctk.CTkLabel(repeat_frame, text="", font=ctk.CTkFont(size=18, weight="bold"))
+        self.repeat_title_label.grid(row=0, column=0, columnspan=2, sticky="w", padx=14, pady=(12, 8))
 
         self.repeat_mode = ctk.StringVar(value="infinite")
-        ctk.CTkRadioButton(repeat_frame, text="Infini", variable=self.repeat_mode, value="infinite").grid(row=1, column=0, sticky="w", padx=14, pady=4)
-        ctk.CTkRadioButton(repeat_frame, text="Nombre de fois", variable=self.repeat_mode, value="count").grid(row=2, column=0, sticky="w", padx=14, pady=4)
+        self.repeat_infinite_radio = ctk.CTkRadioButton(repeat_frame, text="", variable=self.repeat_mode, value="infinite")
+        self.repeat_infinite_radio.grid(row=1, column=0, sticky="w", padx=14, pady=4)
+        self.repeat_count_radio = ctk.CTkRadioButton(repeat_frame, text="", variable=self.repeat_mode, value="count")
+        self.repeat_count_radio.grid(row=2, column=0, sticky="w", padx=14, pady=4)
         self.repeat_count_entry = ctk.CTkEntry(repeat_frame, width=110)
         self.repeat_count_entry.grid(row=2, column=1, sticky="w", padx=8, pady=4)
 
@@ -85,11 +106,14 @@ class MainWindow(ctk.CTkFrame):
         pos_frame.grid(row=1, column=1, sticky="nsew", padx=(6, 0), pady=8)
         pos_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
 
-        ctk.CTkLabel(pos_frame, text="Position", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, columnspan=4, sticky="w", padx=14, pady=(12, 8))
+        self.position_title_label = ctk.CTkLabel(pos_frame, text="", font=ctk.CTkFont(size=18, weight="bold"))
+        self.position_title_label.grid(row=0, column=0, columnspan=4, sticky="w", padx=14, pady=(12, 8))
 
         self.pos_mode = ctk.StringVar(value="current")
-        ctk.CTkRadioButton(pos_frame, text="Position actuelle", variable=self.pos_mode, value="current").grid(row=1, column=0, columnspan=2, sticky="w", padx=14, pady=4)
-        ctk.CTkRadioButton(pos_frame, text="Coordonnées spécifiques", variable=self.pos_mode, value="specific").grid(row=2, column=0, columnspan=2, sticky="w", padx=14, pady=4)
+        self.current_position_radio = ctk.CTkRadioButton(pos_frame, text="", variable=self.pos_mode, value="current")
+        self.current_position_radio.grid(row=1, column=0, columnspan=2, sticky="w", padx=14, pady=4)
+        self.specific_position_radio = ctk.CTkRadioButton(pos_frame, text="", variable=self.pos_mode, value="specific")
+        self.specific_position_radio.grid(row=2, column=0, columnspan=2, sticky="w", padx=14, pady=4)
 
         ctk.CTkLabel(pos_frame, text="X").grid(row=2, column=2, sticky="e", padx=(0, 4))
         self.x_entry = ctk.CTkEntry(pos_frame, width=100)
@@ -106,28 +130,34 @@ class MainWindow(ctk.CTkFrame):
         options_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=8)
         options_frame.grid_columnconfigure((0, 1), weight=1)
 
-        ctk.CTkLabel(options_frame, text="Options de clic", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, columnspan=2, sticky="w", padx=14, pady=(12, 8))
+        self.options_title_label = ctk.CTkLabel(options_frame, text="", font=ctk.CTkFont(size=18, weight="bold"))
+        self.options_title_label.grid(row=0, column=0, columnspan=2, sticky="w", padx=14, pady=(12, 8))
 
-        ctk.CTkLabel(options_frame, text="Bouton").grid(row=1, column=0, sticky="w", padx=14)
+        self.button_label = ctk.CTkLabel(options_frame, text="")
+        self.button_label.grid(row=1, column=0, sticky="w", padx=14)
         self.mouse_button = ctk.CTkComboBox(options_frame, values=["Gauche", "Droit"])
         self.mouse_button.grid(row=2, column=0, sticky="ew", padx=14, pady=(4, 12))
 
-        ctk.CTkLabel(options_frame, text="Type de clic").grid(row=1, column=1, sticky="w", padx=14)
+        self.click_type_label = ctk.CTkLabel(options_frame, text="")
+        self.click_type_label.grid(row=1, column=1, sticky="w", padx=14)
         self.click_type = ctk.CTkComboBox(options_frame, values=["Simple", "Double"])
         self.click_type.grid(row=2, column=1, sticky="ew", padx=14, pady=(4, 12))
 
         self.temporal_jitter_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(options_frame, text="Jitter temporel", variable=self.temporal_jitter_var).grid(row=3, column=0, sticky="w", padx=14, pady=(0, 8))
+        self.temporal_jitter_checkbox = ctk.CTkCheckBox(options_frame, text="", variable=self.temporal_jitter_var)
+        self.temporal_jitter_checkbox.grid(row=3, column=0, sticky="w", padx=14, pady=(0, 8))
 
         min_row = ctk.CTkFrame(options_frame, fg_color="transparent")
         min_row.grid(row=3, column=1, sticky="ew", padx=14, pady=(0, 8))
-        ctk.CTkLabel(min_row, text="Min (s)").pack(side="left", padx=(0, 6))
+        self.min_seconds_label = ctk.CTkLabel(min_row, text="")
+        self.min_seconds_label.pack(side="left", padx=(0, 6))
         self.temporal_jitter_min_entry = ctk.CTkEntry(min_row, width=95)
         self.temporal_jitter_min_entry.pack(side="left")
 
         max_row = ctk.CTkFrame(options_frame, fg_color="transparent")
         max_row.grid(row=4, column=1, sticky="ew", padx=14, pady=(0, 12))
-        ctk.CTkLabel(max_row, text="Max (s)").pack(side="left", padx=(0, 6))
+        self.max_seconds_label = ctk.CTkLabel(max_row, text="")
+        self.max_seconds_label.pack(side="left", padx=(0, 6))
         self.temporal_jitter_max_entry = ctk.CTkEntry(max_row, width=95)
         self.temporal_jitter_max_entry.pack(side="left")
 
@@ -135,45 +165,56 @@ class MainWindow(ctk.CTkFrame):
         controls_frame.grid(row=3, column=0, columnspan=2, sticky="ew", pady=8)
         controls_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
-        self.start_btn = ctk.CTkButton(controls_frame, text="Start (F6)", fg_color="#10B981", hover_color="#059669", command=self._start)
+        self.start_btn = ctk.CTkButton(controls_frame, text="", fg_color="#10B981", hover_color="#059669", command=self._start)
         self.start_btn.grid(row=0, column=0, padx=8, pady=12, sticky="ew")
 
-        self.stop_btn = ctk.CTkButton(controls_frame, text="Stop (F7)", fg_color="#64748B", hover_color="#475569", command=self._stop)
+        self.stop_btn = ctk.CTkButton(controls_frame, text="", fg_color="#64748B", hover_color="#475569", command=self._stop)
         self.stop_btn.grid(row=0, column=1, padx=8, pady=12, sticky="ew")
 
-        self.toggle_btn = ctk.CTkButton(controls_frame, text="Toggle (F8)", fg_color="#4F46E5", hover_color="#4338CA", command=self._toggle)
+        self.toggle_btn = ctk.CTkButton(controls_frame, text="", fg_color="#4F46E5", hover_color="#4338CA", command=self._toggle)
         self.toggle_btn.grid(row=0, column=2, padx=8, pady=12, sticky="ew")
 
         utils_frame = ctk.CTkFrame(self)
         utils_frame.grid(row=4, column=0, columnspan=2, sticky="ew", pady=8)
         utils_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
-        ctk.CTkButton(utils_frame, text="Enregistrer les paramètres", command=self._save_state).grid(row=0, column=0, padx=8, pady=12, sticky="ew")
-        ctk.CTkButton(utils_frame, text="Hotkeys", command=self._on_open_hotkeys).grid(row=0, column=1, padx=8, pady=12, sticky="ew")
-        ctk.CTkButton(utils_frame, text="Exporter profil", command=self._export_profile).grid(row=0, column=2, padx=8, pady=12, sticky="ew")
-        ctk.CTkButton(utils_frame, text="Importer profil", command=self._import_profile).grid(row=0, column=3, padx=8, pady=12, sticky="ew")
+        self.save_settings_btn = ctk.CTkButton(utils_frame, text="", command=self._save_state)
+        self.save_settings_btn.grid(row=0, column=0, padx=8, pady=12, sticky="ew")
+        self.open_hotkeys_btn = ctk.CTkButton(utils_frame, text="", command=self._on_open_hotkeys)
+        self.open_hotkeys_btn.grid(row=0, column=1, padx=8, pady=12, sticky="ew")
+        self.export_btn = ctk.CTkButton(utils_frame, text="", command=self._export_profile)
+        self.export_btn.grid(row=0, column=2, padx=8, pady=12, sticky="ew")
+        self.import_btn = ctk.CTkButton(utils_frame, text="", command=self._import_profile)
+        self.import_btn.grid(row=0, column=3, padx=8, pady=12, sticky="ew")
 
         self.topmost_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(utils_frame, text="Rester au premier plan", variable=self.topmost_var, command=self._toggle_topmost).grid(row=0, column=4, padx=8, pady=12, sticky="w")
+        self.topmost_checkbox = ctk.CTkCheckBox(utils_frame, text="", variable=self.topmost_var, command=self._toggle_topmost)
+        self.topmost_checkbox.grid(row=0, column=4, padx=8, pady=12, sticky="w")
 
         nav_frame = ctk.CTkFrame(self)
         nav_frame.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(8, 2))
         nav_frame.grid_columnconfigure((0, 1), weight=1)
 
-        ctk.CTkButton(nav_frame, text="Ouvrir l'auto Key Presser", command=self._on_open_key_presser).grid(row=0, column=0, padx=8, pady=12, sticky="ew")
-        ctk.CTkButton(nav_frame, text="Afficher le mode Avancé", fg_color="#4F46E5", hover_color="#4338CA", command=self._on_open_advanced).grid(row=0, column=1, padx=8, pady=12, sticky="ew")
+        self.open_key_presser_btn = ctk.CTkButton(nav_frame, text="", command=self._on_open_key_presser)
+        self.open_key_presser_btn.grid(row=0, column=0, padx=8, pady=12, sticky="ew")
+        self.open_advanced_btn = ctk.CTkButton(nav_frame, text="", fg_color="#4F46E5", hover_color="#4338CA", command=self._on_open_advanced)
+        self.open_advanced_btn.grid(row=0, column=1, padx=8, pady=12, sticky="ew")
 
         status_frame = ctk.CTkFrame(self)
         status_frame.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(8, 0))
-        ctk.CTkLabel(status_frame, text="Statut", font=ctk.CTkFont(size=16, weight="bold")).pack(anchor="w", padx=12, pady=(10, 4))
-        self.status_label = ctk.CTkLabel(status_frame, text="Prêt")
+        self.status_title_label = ctk.CTkLabel(status_frame, text="", font=ctk.CTkFont(size=16, weight="bold"))
+        self.status_title_label.pack(anchor="w", padx=12, pady=(10, 4))
+        self.status_label = ctk.CTkLabel(status_frame, text="")
         self.status_label.pack(anchor="w", padx=12, pady=(0, 10))
 
         history_frame = ctk.CTkFrame(self)
         history_frame.grid(row=7, column=0, columnspan=2, sticky="nsew", pady=(8, 0))
-        ctk.CTkLabel(history_frame, text="Historique des actions (temps réel)", font=ctk.CTkFont(size=16, weight="bold")).pack(anchor="w", padx=12, pady=(10, 6))
+        self.history_title_label = ctk.CTkLabel(history_frame, text="", font=ctk.CTkFont(size=16, weight="bold"))
+        self.history_title_label.pack(anchor="w", padx=12, pady=(10, 6))
         self.history_box = ctk.CTkTextbox(history_frame, height=150)
         self.history_box.pack(fill="both", expand=True, padx=12, pady=(0, 10))
+
+        self.update_ui_language()
 
     def _int_entry(self, parent, row, column):
         entry = ctk.CTkEntry(parent, width=90, justify="center")
@@ -192,6 +233,7 @@ class MainWindow(ctk.CTkFrame):
         self.temporal_jitter_max_entry.delete(0, "end")
 
         data = self._state.main_click
+        lang = self._state.current_language
         self.h_entry.insert(0, str(data.hours))
         self.m_entry.insert(0, str(data.minutes))
         self.s_entry.insert(0, str(data.seconds))
@@ -201,13 +243,18 @@ class MainWindow(ctk.CTkFrame):
         self.pos_mode.set("current" if data.current_position else "specific")
         self.x_entry.insert(0, str(data.x))
         self.y_entry.insert(0, str(data.y))
-        self.mouse_button.set("Gauche" if data.mouse_button == "left" else "Droit")
-        self.click_type.set("Simple" if data.click_type == "single" else "Double")
+        if lang == "fr":
+            self.mouse_button.set("Gauche" if data.mouse_button == "left" else "Droit")
+            self.click_type.set("Simple" if data.click_type == "single" else "Double")
+        else:
+            self.mouse_button.set("Left" if data.mouse_button == "left" else "Right")
+            self.click_type.set("Single" if data.click_type == "single" else "Double")
         self.temporal_jitter_var.set(data.temporal_jitter_enabled)
         self.temporal_jitter_min_entry.insert(0, str(data.temporal_jitter_min))
         self.temporal_jitter_max_entry.insert(0, str(data.temporal_jitter_max))
         self.topmost_var.set(data.always_on_top)
         self._toggle_topmost()
+        self.update_ui_language()
 
     def refresh_from_state(self) -> None:
         self._load_state()
@@ -243,8 +290,8 @@ class MainWindow(ctk.CTkFrame):
             "current_position": self.pos_mode.get() == "current",
             "x": safe_int(self.x_entry.get(), default=0),
             "y": safe_int(self.y_entry.get(), default=0),
-            "mouse_button": "left" if self.mouse_button.get() == "Gauche" else "right",
-            "click_type": "single" if self.click_type.get() == "Simple" else "double",
+            "mouse_button": "left" if self.mouse_button.get() in ("Gauche", "Left") else "right",
+            "click_type": "single" if self.click_type.get() in ("Simple", "Single") else "double",
             "temporal_jitter_enabled": self.temporal_jitter_var.get(),
             "temporal_jitter_min": jitter_min,
             "temporal_jitter_max": jitter_max,
@@ -289,3 +336,53 @@ class MainWindow(ctk.CTkFrame):
 
     def _set_status(self, message: str) -> None:
         self.after(0, lambda: self.status_label.configure(text=message))
+
+    def update_ui_language(self) -> None:
+        lang = self._state.current_language
+        display = "Français" if lang == "fr" else "English"
+        self.language_menu.set(display)
+
+        self.language_label.configure(text=get_text(lang, "language"))
+        self.interval_title_label.configure(text=get_text(lang, "main_interval_title"))
+        self.hours_label.configure(text=get_text(lang, "hours"))
+        self.minutes_label.configure(text=get_text(lang, "minutes"))
+        self.seconds_label.configure(text=get_text(lang, "seconds"))
+        self.milliseconds_label.configure(text=get_text(lang, "milliseconds"))
+        self.repeat_title_label.configure(text=get_text(lang, "main_repeat_title"))
+        self.repeat_infinite_radio.configure(text=get_text(lang, "infinite"))
+        self.repeat_count_radio.configure(text=get_text(lang, "repeat_count"))
+        self.position_title_label.configure(text=get_text(lang, "main_position_title"))
+        self.current_position_radio.configure(text=get_text(lang, "current_position"))
+        self.specific_position_radio.configure(text=get_text(lang, "specific_position"))
+        self.options_title_label.configure(text=get_text(lang, "main_options_title"))
+        self.button_label.configure(text=get_text(lang, "button"))
+        self.click_type_label.configure(text=get_text(lang, "click_type"))
+        self.temporal_jitter_checkbox.configure(text=get_text(lang, "temporal_jitter"))
+        self.min_seconds_label.configure(text=get_text(lang, "min_seconds"))
+        self.max_seconds_label.configure(text=get_text(lang, "max_seconds"))
+
+        self.mouse_button.configure(values=["Gauche", "Droit"] if lang == "fr" else ["Left", "Right"])
+        self.click_type.configure(values=["Simple", "Double"] if lang == "fr" else ["Single", "Double"])
+
+        self.start_btn.configure(text=get_text(lang, "start_main"))
+        self.stop_btn.configure(text=get_text(lang, "stop_main"))
+        self.toggle_btn.configure(text=get_text(lang, "toggle_main"))
+        self.save_settings_btn.configure(text=get_text(lang, "save_settings"))
+        self.open_hotkeys_btn.configure(text=get_text(lang, "hotkeys"))
+        self.export_btn.configure(text=get_text(lang, "export_profile"))
+        self.import_btn.configure(text=get_text(lang, "import_profile"))
+        self.topmost_checkbox.configure(text=get_text(lang, "always_on_top"))
+        self.open_key_presser_btn.configure(text=get_text(lang, "open_key_presser"))
+        self.open_advanced_btn.configure(text=get_text(lang, "open_advanced"))
+        self.status_title_label.configure(text=get_text(lang, "status"))
+        self.history_title_label.configure(text=get_text(lang, "history_live"))
+        if not self.status_label.cget("text"):
+            self.status_label.configure(text=get_text(lang, "ready"))
+
+    def _on_language_selected(self, selection: str) -> None:
+        language = "en" if selection == "English" else "fr"
+        if language == self._state.current_language:
+            return
+        self._state.current_language = language
+        self.update_ui_language()
+        self._on_language_change(language)

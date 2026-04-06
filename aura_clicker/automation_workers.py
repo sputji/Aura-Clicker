@@ -183,7 +183,8 @@ class SequenceWorker(BaseWorker):
                     on_status("Aucune action dans la séquence")
                     return
 
-                interval = interval_to_seconds(0, 0, config["interval_seconds"], config["interval_milliseconds"])
+                total_interval = int(config["interval_seconds"]) + (int(config["interval_milliseconds"]) / 1000.0)
+                total_interval = max(0.0, total_interval)
                 repeat_sequence = config["repeat_sequence"]
                 repeat_delay_seconds = max(0.0, float(config.get("repeat_delay_seconds", 0.0)))
                 humanized_mode = config["humanized_mode"]
@@ -219,10 +220,12 @@ class SequenceWorker(BaseWorker):
                                     on_action(
                                         f"Action souris: X={x} Y={y} bouton={button} type={click_type}"
                                     )
-                                click_delay = 0.01
+                                click_delay = total_interval
                                 if temporal_jitter_enabled:
                                     click_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
-                                if self._stop_event.wait(max(0.001, click_delay)):
+                                if click_delay > 0:
+                                    time.sleep(click_delay)
+                                if self._stop_event.is_set():
                                     break
 
                         elif action["type"] == "image":
@@ -269,10 +272,12 @@ class SequenceWorker(BaseWorker):
                                         f"Image non trouvée ({attempt + 1}/{retries}) : {image_path}"
                                     )
 
-                                retry_delay = interval
+                                retry_delay = total_interval
                                 if temporal_jitter_enabled:
                                     retry_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
-                                if self._stop_event.wait(max(0.001, retry_delay)):
+                                if retry_delay > 0:
+                                    time.sleep(retry_delay)
+                                if self._stop_event.is_set():
                                     break
 
                             if not found and on_action:
@@ -283,11 +288,13 @@ class SequenceWorker(BaseWorker):
                             if on_action:
                                 on_action(f"Action clavier: {action['keys']}")
 
-                        action_delay = interval
+                        action_delay = total_interval
                         if temporal_jitter_enabled:
                             action_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
 
-                        if self._stop_event.wait(max(0.001, action_delay)):
+                        if action_delay > 0:
+                            time.sleep(action_delay)
+                        if self._stop_event.is_set():
                             break
 
                     if self._stop_event.is_set() or not repeat_sequence:

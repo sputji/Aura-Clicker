@@ -3,6 +3,7 @@ from __future__ import annotations
 import customtkinter as ctk
 
 from ..capture import capture_hotkey_combination
+from ..translations import get_text
 from ..utils import safe_int
 
 
@@ -41,8 +42,10 @@ class KeyPresserWindow(ctk.CTkToplevel):
         key_frame.grid(row=0, column=0, sticky="ew", padx=16, pady=(14, 8))
         key_frame.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(key_frame, text="Sélection de touche", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, columnspan=3, sticky="w", padx=14, pady=(12, 8))
-        ctk.CTkLabel(key_frame, text="Touche sélectionnée").grid(row=1, column=0, sticky="w", padx=14, pady=10)
+        self.key_select_title_label = ctk.CTkLabel(key_frame, text="Sélection de touche", font=ctk.CTkFont(size=18, weight="bold"))
+        self.key_select_title_label.grid(row=0, column=0, columnspan=3, sticky="w", padx=14, pady=(12, 8))
+        self.selected_key_label = ctk.CTkLabel(key_frame, text="Touche sélectionnée")
+        self.selected_key_label.grid(row=1, column=0, sticky="w", padx=14, pady=10)
 
         self.key_entry = ctk.CTkEntry(key_frame)
         self.key_entry.grid(row=1, column=1, sticky="ew", padx=10, pady=10)
@@ -50,57 +53,71 @@ class KeyPresserWindow(ctk.CTkToplevel):
         self.capture_btn = ctk.CTkButton(key_frame, text="Capturer", width=140, command=self._capture_key)
         self.capture_btn.grid(row=1, column=2, padx=14, pady=10)
 
-        ctk.CTkLabel(
+        self.capture_help_label = ctk.CTkLabel(
             key_frame,
             text="Cliquez sur Capturer puis appuyez sur une touche ou combinaison (ex: Ctrl+Shift+A)",
             text_color=("#4F46E5", "#A5B4FC"),
-        ).grid(row=2, column=0, columnspan=3, sticky="w", padx=14, pady=(0, 12))
+        )
+        self.capture_help_label.grid(row=2, column=0, columnspan=3, sticky="w", padx=14, pady=(0, 12))
 
         interval_frame = ctk.CTkFrame(self)
         interval_frame.grid(row=1, column=0, sticky="ew", padx=16, pady=8)
 
-        ctk.CTkLabel(interval_frame, text="Intervalle", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, columnspan=8, sticky="w", padx=14, pady=(12, 8))
+        self.interval_title_label = ctk.CTkLabel(interval_frame, text="Intervalle", font=ctk.CTkFont(size=18, weight="bold"))
+        self.interval_title_label.grid(row=0, column=0, columnspan=8, sticky="w", padx=14, pady=(12, 8))
 
         self.h_entry = self._int_entry(interval_frame, 1, 0)
-        ctk.CTkLabel(interval_frame, text="heures").grid(row=1, column=1, padx=8)
+        self.hours_label = ctk.CTkLabel(interval_frame, text="heures")
+        self.hours_label.grid(row=1, column=1, padx=8)
         self.m_entry = self._int_entry(interval_frame, 1, 2)
-        ctk.CTkLabel(interval_frame, text="minutes").grid(row=1, column=3, padx=8)
+        self.minutes_label = ctk.CTkLabel(interval_frame, text="minutes")
+        self.minutes_label.grid(row=1, column=3, padx=8)
         self.s_entry = self._int_entry(interval_frame, 1, 4)
-        ctk.CTkLabel(interval_frame, text="secondes").grid(row=1, column=5, padx=8)
+        self.seconds_label = ctk.CTkLabel(interval_frame, text="secondes")
+        self.seconds_label.grid(row=1, column=5, padx=8)
         self.ms_entry = self._int_entry(interval_frame, 1, 6)
-        ctk.CTkLabel(interval_frame, text="millisecondes").grid(row=1, column=7, padx=(8, 14))
+        self.milliseconds_label = ctk.CTkLabel(interval_frame, text="millisecondes")
+        self.milliseconds_label.grid(row=1, column=7, padx=(8, 14))
 
         repeat_frame = ctk.CTkFrame(self)
         repeat_frame.grid(row=2, column=0, sticky="ew", padx=16, pady=8)
         repeat_frame.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(repeat_frame, text="Répétition", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, columnspan=4, sticky="w", padx=14, pady=(12, 8))
+        self.repeat_title_label = ctk.CTkLabel(repeat_frame, text="Répétition", font=ctk.CTkFont(size=18, weight="bold"))
+        self.repeat_title_label.grid(row=0, column=0, columnspan=4, sticky="w", padx=14, pady=(12, 8))
 
         self.repeat_mode = ctk.StringVar(value="infinite")
-        ctk.CTkRadioButton(repeat_frame, text="Infini (jusqu'à arrêt)", variable=self.repeat_mode, value="infinite").grid(row=1, column=0, sticky="w", padx=14, pady=6)
+        self.repeat_infinite_radio = ctk.CTkRadioButton(repeat_frame, text="Infini (jusqu'à arrêt)", variable=self.repeat_mode, value="infinite")
+        self.repeat_infinite_radio.grid(row=1, column=0, sticky="w", padx=14, pady=6)
         self.repeat_count_entry = ctk.CTkEntry(repeat_frame, width=120)
         self.repeat_count_entry.grid(row=2, column=0, sticky="w", padx=44, pady=(0, 6))
-        ctk.CTkLabel(repeat_frame, text="Nombre de fois").grid(row=2, column=1, sticky="w", pady=(0, 6))
+        self.repeat_count_label = ctk.CTkLabel(repeat_frame, text="Nombre de fois")
+        self.repeat_count_label.grid(row=2, column=1, sticky="w", pady=(0, 6))
 
         self.hold_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(repeat_frame, text="Maintenir la touche enfoncée", variable=self.hold_var).grid(row=1, column=2, sticky="w", padx=14, pady=6)
+        self.hold_checkbox = ctk.CTkCheckBox(repeat_frame, text="Maintenir la touche enfoncée", variable=self.hold_var)
+        self.hold_checkbox.grid(row=1, column=2, sticky="w", padx=14, pady=6)
 
-        ctk.CTkLabel(repeat_frame, text="Durée du maintien (ms)").grid(row=2, column=2, sticky="w", padx=14, pady=(0, 6))
+        self.hold_duration_label = ctk.CTkLabel(repeat_frame, text="Durée du maintien (ms)")
+        self.hold_duration_label.grid(row=2, column=2, sticky="w", padx=14, pady=(0, 6))
         self.hold_duration_entry = ctk.CTkEntry(repeat_frame, width=120)
         self.hold_duration_entry.grid(row=2, column=3, sticky="w", pady=(0, 6))
 
-        ctk.CTkRadioButton(repeat_frame, text="Nombre de fois", variable=self.repeat_mode, value="count").grid(row=3, column=0, sticky="w", padx=14, pady=(6, 12))
+        self.repeat_count_radio = ctk.CTkRadioButton(repeat_frame, text="Nombre de fois", variable=self.repeat_mode, value="count")
+        self.repeat_count_radio.grid(row=3, column=0, sticky="w", padx=14, pady=(6, 12))
 
         status_frame = ctk.CTkFrame(self)
         status_frame.grid(row=3, column=0, sticky="ew", padx=16, pady=8)
-        ctk.CTkLabel(status_frame, text="Statut", font=ctk.CTkFont(size=18, weight="bold")).pack(anchor="w", padx=14, pady=(12, 8))
+        self.status_title_label = ctk.CTkLabel(status_frame, text="Statut", font=ctk.CTkFont(size=18, weight="bold"))
+        self.status_title_label.pack(anchor="w", padx=14, pady=(12, 8))
 
         self.status_label = ctk.CTkLabel(status_frame, text="Prêt")
         self.status_label.pack(anchor="w", padx=14, pady=(0, 12))
 
         history_frame = ctk.CTkFrame(self)
         history_frame.grid(row=4, column=0, sticky="ew", padx=16, pady=8)
-        ctk.CTkLabel(history_frame, text="Historique temps réel", font=ctk.CTkFont(size=16, weight="bold")).pack(anchor="w", padx=14, pady=(10, 6))
+        self.history_title_label = ctk.CTkLabel(history_frame, text="Historique temps réel", font=ctk.CTkFont(size=16, weight="bold"))
+        self.history_title_label.pack(anchor="w", padx=14, pady=(10, 6))
         self.history_box = ctk.CTkTextbox(history_frame, height=95)
         self.history_box.pack(fill="both", expand=True, padx=14, pady=(0, 12))
 
@@ -115,6 +132,8 @@ class KeyPresserWindow(ctk.CTkToplevel):
 
         self.save_btn = ctk.CTkButton(controls, text="Enregistrer les paramètres", fg_color="#4F46E5", hover_color="#4338CA", command=self._save_state)
         self.save_btn.pack(side="right", padx=10, pady=12)
+
+        self.update_ui_language()
 
     def _int_entry(self, parent, row, column):
         entry = ctk.CTkEntry(parent, width=80, justify="center")
@@ -196,4 +215,28 @@ class KeyPresserWindow(ctk.CTkToplevel):
         self.history_box.delete("1.0", "end")
         if items:
             self.history_box.insert("1.0", "\n".join(items) + "\n")
+
+    def update_ui_language(self) -> None:
+        lang = self._state.current_language
+        self.title(get_text(lang, "key_presser_title"))
+        self.key_select_title_label.configure(text=get_text(lang, "key_select_title"))
+        self.selected_key_label.configure(text=get_text(lang, "selected_key"))
+        self.capture_btn.configure(text=get_text(lang, "capture"))
+        self.capture_help_label.configure(text=get_text(lang, "capture_help"))
+        self.interval_title_label.configure(text=get_text(lang, "interval"))
+        self.hours_label.configure(text=get_text(lang, "hours").lower())
+        self.minutes_label.configure(text=get_text(lang, "minutes").lower())
+        self.seconds_label.configure(text=get_text(lang, "seconds").lower())
+        self.milliseconds_label.configure(text=get_text(lang, "milliseconds").lower())
+        self.repeat_title_label.configure(text=get_text(lang, "repeat"))
+        self.repeat_infinite_radio.configure(text=get_text(lang, "infinite_until_stop"))
+        self.repeat_count_label.configure(text=get_text(lang, "repeat_count"))
+        self.hold_checkbox.configure(text=get_text(lang, "hold_key"))
+        self.hold_duration_label.configure(text=get_text(lang, "hold_duration"))
+        self.repeat_count_radio.configure(text=get_text(lang, "repeat_count"))
+        self.status_title_label.configure(text=get_text(lang, "status"))
+        self.history_title_label.configure(text=get_text(lang, "history_realtime"))
+        self.start_btn.configure(text=get_text(lang, "start_key"))
+        self.stop_btn.configure(text=get_text(lang, "stop_key"))
+        self.save_btn.configure(text=get_text(lang, "save_settings"))
 

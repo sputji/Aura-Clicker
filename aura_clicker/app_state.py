@@ -60,6 +60,7 @@ class AppState:
     key_presser: KeyPresserSettings = field(default_factory=KeyPresserSettings)
     sequence_actions: list[dict[str, Any]] = field(default_factory=list)
     hotkeys: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_HOTKEYS))
+    current_language: str = "fr"
 
 
 class SettingsStore:
@@ -96,6 +97,7 @@ class SettingsStore:
             key_presser=key_presser,
             sequence_actions=sequence_actions,
             hotkeys={**DEFAULT_HOTKEYS, **hotkeys},
+            current_language=str(payload.get("current_language", "fr") or "fr"),
         )
 
     def save(self, state: AppState) -> None:
@@ -105,6 +107,7 @@ class SettingsStore:
             "key_presser": asdict(state.key_presser),
             "sequence_actions": state.sequence_actions,
             "hotkeys": state.hotkeys,
+            "current_language": state.current_language,
         }
         self.file_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
