@@ -39,11 +39,11 @@ class HotkeySettingsWindow(ctk.CTkToplevel):
         ctk.CTkButton(self, text="Enregistrer", width=160, command=self._save).place(x=25, y=185)
         ctk.CTkButton(self, text="Réinitialiser", width=160, fg_color="#6B7280", hover_color="#4B5563", command=self._reset).place(x=225, y=185)
 
-    # Force la fenêtre au premier plan de l'OS
-    self.attributes("-topmost", True)
-    # Attend 200ms que la fenêtre soit dessinée, puis retire le topmost pour qu'elle redescende dans le flux normal, tout en restant focus
-    self.after(200, lambda: self.attributes("-topmost", False))
-    self.focus_force()
+        # Force la fenêtre au premier plan de l'OS
+        self.attributes("-topmost", True)
+        # Attend 200ms que la fenêtre soit dessinée, puis retire le topmost pour qu'elle redescende dans le flux normal, tout en restant focus
+        self.after(200, lambda: self.attributes("-topmost", False))
+        self.focus_force()
 
     def _save(self) -> None:
         payload = {
