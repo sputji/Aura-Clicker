@@ -28,12 +28,23 @@ Conçu pour les joueurs, les testeurs, les automatiseurs et les utilisateurs pro
 - Intervalle personnalisable (millisecondes à secondes)
 - Nombre de répétitions limité ou infini
 - Position fixe ou position courante du curseur
+- Jitter temporel optionnel (min / max en secondes) pour des rythmes plus naturels
 
 ### 🔄 Séquences d'actions avancées
 - Enregistrement de séquences multi-étapes
 - Délais précis entre chaque action
 - Mélange clics + touches + déplacements
 - Import / Export de séquences au format `.aura_profile.json`
+- Répétition continue de la séquence avec délai configurable entre chaque boucle
+- Mode humanisé (jitter spatial) et jitter temporel min / max
+- Action "Cliquer sur une image" avec détection à l'écran (`confidence=0.8`)
+- Journalisation structurée des échecs de détection image
+
+### 🎥 Enregistrement de macro à la volée
+- Bouton dédié dans le mode avancé
+- Capture en temps réel des clics souris et frappes clavier
+- Insertion immédiate dans la séquence
+- Arrêt rapide via `F9`
 
 ### ⌨️ Presseur de touches
 - Simulation de frappes clavier automatisées
@@ -145,6 +156,15 @@ Les profils sont stockés en `.aura_profile.json` et peuvent être partagés ent
 ---
 
 ## Changelog
+
+### v0.1.4 — 2026-04-07
+- Correction du mode "Répéter la séquence continuellement" (bug de fin de boucle)
+- Ajout du délai entre répétitions de séquence (mode avancé)
+- Ajout du jitter temporel (fenêtre principale + mode avancé)
+- Ajout de l'enregistrement de macro à la volée (stop via `F9`)
+- Ajout de l'action "Cliquer sur une image" (OpenCV + PyAutoGUI, `confidence=0.8`)
+- Amélioration de la gestion des fenêtres secondaires (auto-size + ouverture au premier plan)
+- Passage de la version application en `0.1.4`
 
 ### v0.1.2 — 2026-04-06
 - Nouveau logo Aura Néo officiel
