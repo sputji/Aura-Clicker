@@ -3,7 +3,7 @@ from __future__ import annotations
 import customtkinter as ctk
 
 from ..capture import capture_mouse_position
-from ..translations import get_text
+from ..translations import format_text, get_text
 from ..utils import safe_int
 
 
@@ -260,7 +260,7 @@ class MainWindow(ctk.CTkFrame):
         self._load_state()
 
     def _capture_target(self) -> None:
-        self._set_status("Capture position en cours: cliquez à l'endroit voulu")
+        self._set_status(format_text(self._state.current_language, "status_capture_position"))
 
         def on_captured(x: int, y: int) -> None:
             self.after(0, lambda: self._apply_captured_position(x, y))
@@ -272,7 +272,7 @@ class MainWindow(ctk.CTkFrame):
         self.y_entry.delete(0, "end")
         self.x_entry.insert(0, str(x))
         self.y_entry.insert(0, str(y))
-        self._set_status(f"Coordonnées capturées: X={x}, Y={y}")
+        self._set_status(format_text(self._state.current_language, "status_coordinates_captured", x=x, y=y))
 
     def _build_click_config(self) -> dict:
         jitter_min = _safe_float(self.temporal_jitter_min_entry.get(), default=0.008, minimum=0.001)
@@ -295,6 +295,7 @@ class MainWindow(ctk.CTkFrame):
             "temporal_jitter_enabled": self.temporal_jitter_var.get(),
             "temporal_jitter_min": jitter_min,
             "temporal_jitter_max": jitter_max,
+            "language": self._state.current_language,
         }
 
     def _start(self) -> None:
@@ -303,7 +304,7 @@ class MainWindow(ctk.CTkFrame):
 
     def _stop(self) -> None:
         self._on_stop()
-        self._set_status("Auto-clic arrêté")
+        self._set_status(format_text(self._state.current_language, "status_main_stopped"))
 
     def _toggle(self) -> None:
         config = self._build_click_config()
@@ -315,7 +316,7 @@ class MainWindow(ctk.CTkFrame):
     def _save_state(self) -> None:
         config = self._build_click_config()
         self._on_save(config, bool(self.topmost_var.get()))
-        self._set_status("Paramètres enregistrés")
+        self._set_status(format_text(self._state.current_language, "status_settings_saved"))
 
     def _export_profile(self) -> None:
         self._on_export_profile()

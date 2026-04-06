@@ -3,7 +3,7 @@ from __future__ import annotations
 import customtkinter as ctk
 
 from ..capture import capture_hotkey_combination
-from ..translations import get_text
+from ..translations import format_text, get_text
 from ..utils import safe_int
 
 
@@ -164,7 +164,7 @@ class KeyPresserWindow(ctk.CTkToplevel):
         self._load_from_state()
 
     def _capture_key(self) -> None:
-        self.status_label.configure(text="Capture en cours... appuyez sur une touche")
+        self.status_label.configure(text=format_text(self._state.current_language, "status_key_capture_running"))
 
         def on_captured(combo: str) -> None:
             self.after(0, lambda: self._apply_captured_key(combo))
@@ -174,7 +174,7 @@ class KeyPresserWindow(ctk.CTkToplevel):
     def _apply_captured_key(self, combo: str) -> None:
         self.key_entry.delete(0, "end")
         self.key_entry.insert(0, combo)
-        self.status_label.configure(text=f"Touche capturée: {combo}")
+        self.status_label.configure(text=format_text(self._state.current_language, "status_key_captured", combo=combo))
 
     def _build_config(self) -> dict:
         return {
@@ -187,6 +187,7 @@ class KeyPresserWindow(ctk.CTkToplevel):
             "repeat_count": safe_int(self.repeat_count_entry.get(), default=1, minimum=1),
             "hold_key_down": self.hold_var.get(),
             "hold_duration_ms": safe_int(self.hold_duration_entry.get(), default=100, minimum=1),
+            "language": self._state.current_language,
         }
 
     def _start(self) -> None:
@@ -195,12 +196,12 @@ class KeyPresserWindow(ctk.CTkToplevel):
 
     def _stop(self) -> None:
         self._on_stop()
-        self._set_status("Auto-touche arrêté")
+        self._set_status(format_text(self._state.current_language, "status_key_stopped"))
 
     def _save_state(self) -> None:
         config = self._build_config()
         self._on_save(config)
-        self._set_status("Paramètres sauvegardés")
+        self._set_status(format_text(self._state.current_language, "status_key_settings_saved"))
 
     def _set_status(self, text: str) -> None:
         self.after(0, lambda: self.status_label.configure(text=text))

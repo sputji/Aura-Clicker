@@ -23,6 +23,8 @@ class MacroRecorder:
         on_action: Callable[[dict], None],
         on_status: Callable[[str], None],
         stop_key: str = "f9",
+        status_running: str = "Enregistrement macro en cours... Appuyez sur F9 pour arrêter",
+        status_stopped: str = "Enregistrement macro arrêté",
     ) -> None:
         if self.running:
             return
@@ -74,7 +76,7 @@ class MacroRecorder:
             self._keyboard_listener = keyboard.Listener(on_press=on_press)
             self._mouse_listener.start()
             self._keyboard_listener.start()
-            on_status("Enregistrement macro en cours... Appuyez sur F9 pour arrêter")
+            on_status(status_running)
 
             while not self._stop_event.wait(0.1):
                 time.sleep(0.02)
@@ -85,7 +87,7 @@ class MacroRecorder:
             if self._keyboard_listener is not None:
                 self._keyboard_listener.stop()
                 self._keyboard_listener = None
-            on_status("Enregistrement macro arrêté")
+            on_status(status_stopped)
 
         self._thread = threading.Thread(target=_runner, daemon=True)
         self._thread.start()

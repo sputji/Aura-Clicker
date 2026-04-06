@@ -15,6 +15,7 @@ from aura_clicker.hotkey_manager import GlobalHotkeyManager
 from aura_clicker.profile_manager import ProfileManager
 from aura_clicker.structured_error_logger import get_structured_logger, init_structured_logger
 from aura_clicker.theme import apply_aura_theme
+from aura_clicker.translations import format_text
 from aura_clicker.windows.advanced_window import AdvancedWindow
 from aura_clicker.windows.hotkey_settings_window import HotkeySettingsWindow
 from aura_clicker.windows.key_presser_window import KeyPresserWindow
@@ -52,10 +53,13 @@ class AuraClickerApplication:
         self._build_main_window()
         self._register_hotkeys()
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
-        self.history.push(f"{APP_NAME} {APP_VERSION} initialisé")
+        self.history.push(self._tf("history_app_init", app=APP_NAME, version=APP_VERSION))
         logger = get_structured_logger()
         if logger:
             logger.log_message("main.py", "Application initialisée", context={"version": APP_VERSION})
+
+    def _tf(self, key: str, **kwargs) -> str:
+        return format_text(self.state.current_language, key, **kwargs)
 
     def _resolve_asset_path(self, filename: str) -> Path:
         if hasattr(sys, "_MEIPASS"):
@@ -106,12 +110,12 @@ class AuraClickerApplication:
 
     def stop_main_click(self) -> None:
         self.click_worker.stop()
-        self.history.push("Demande d'arrêt auto-clic")
+        self.history.push(self._tf("history_stop_main_requested"))
 
     def toggle_main_click(self, config: dict, status_callback) -> None:
         if self.click_worker.running:
             self.stop_main_click()
-            status_callback("Auto-clic arrêté")
+            status_callback(self._tf("status_main_stopped"))
             return
         self.start_main_click(config, status_callback)
 
@@ -119,7 +123,7 @@ class AuraClickerApplication:
         self._save_main_to_state(config)
         self.state.main_click.always_on_top = always_on_top
         self._persist_state()
-        self.history.push("Paramètres auto-clic sauvegardés")
+        self.history.push(self._tf("history_main_settings_saved"))
 
     def open_hotkey_settings(self) -> None:
         if self._window_alive(self.root, HotkeySettingsWindow):
@@ -131,9 +135,9 @@ class AuraClickerApplication:
             self.state.hotkeys["toggle"] = payload["toggle"]
             self._persist_state()
             self._register_hotkeys()
-            self.history.push("Hotkeys mises à jour")
+            self.history.push(self._tf("history_hotkeys_updated"))
             if self.main_window:
-                self.main_window._set_status("Nouveaux hotkeys enregistrés")
+                self.main_window._set_status(self._tf("status_hotkeys_saved"))
 
         hotkey_window = HotkeySettingsWindow(self.root, self.state.hotkeys, on_save)
         hotkey_window.transient(self.root)
@@ -179,7 +183,7 @@ class AuraClickerApplication:
 
     def stop_advanced(self) -> None:
         self.sequence_worker.stop()
-        self.history.push("Demande d'arrêt séquence avancée")
+        self.history.push(self._tf("history_stop_advanced_requested"))
 
     def start_key_presser(self, config: dict, status_callback) -> None:
         self._save_key_to_state(config)
@@ -187,17 +191,17 @@ class AuraClickerApplication:
 
     def stop_key_presser(self) -> None:
         self.key_worker.stop()
-        self.history.push("Demande d'arrêt auto-touche")
+        self.history.push(self._tf("history_stop_key_requested"))
 
     def save_key_settings(self, config: dict) -> None:
         self._save_key_to_state(config)
         self._persist_state()
-        self.history.push("Paramètres auto-touche sauvegardés")
+        self.history.push(self._tf("history_key_settings_saved"))
 
     def export_profile(self) -> None:
         initial_name = f"aura_clicker_profile_v{APP_VERSION}.aura_profile.json"
         target = filedialog.asksaveasfilename(
-            title="Exporter un profil d'automatisation",
+            title=self._tf("dialog_export_title"),
             defaultextension=".json",
             initialfile=initial_name,
             filetypes=[("Profil Aura-Clicker", "*.aura_profile.json"), ("JSON", "*.json")],
@@ -206,13 +210,13 @@ class AuraClickerApplication:
             return
 
         path = self.profile_manager.export_profile(self.state, Path(target))
-        self.history.push(f"Profil exporté: {path.name}")
+        self.history.push(self._tf("history_profile_exported", name=path.name))
         if self.main_window:
-            self.main_window._set_status(f"Profil exporté: {path.name}")
+            self.main_window._set_status(self._tf("status_profile_exported", name=path.name))
 
     def import_profile(self) -> None:
         target = filedialog.askopenfilename(
-            title="Importer un profil d'automatisation",
+            title=self._tf("dialog_import_title"),
             filetypes=[("Profil Aura-Clicker", "*.aura_profile.json"), ("JSON", "*.json")],
         )
         if not target:
@@ -225,16 +229,16 @@ class AuraClickerApplication:
             logger = get_structured_logger()
             if logger:
                 logger.log_exception("main.py", exc, context={"step": "import_profile", "file": target})
-            messagebox.showerror("Import profil", f"Impossible d'importer le profil: {exc}")
-            self.history.push(f"Import profil échoué: {exc}")
+            messagebox.showerror(self._tf("dialog_import_error_title"), self._tf("dialog_import_error_message", error=str(exc)))
+            self.history.push(self._tf("history_profile_import_failed", error=str(exc)))
             return
 
         self._persist_state()
         self._register_hotkeys()
         self._refresh_windows_from_state()
-        self.history.push(f"Profil importé: {Path(target).name}")
+        self.history.push(self._tf("history_profile_imported", name=Path(target).name))
         if self.main_window:
-            self.main_window._set_status(f"Profil importé: {Path(target).name}")
+            self.main_window._set_status(self._tf("status_profile_imported", name=Path(target).name))
 
     def _apply_profile_payload(self, payload: dict) -> None:
         main_click = payload.get("main_click", {})
@@ -317,12 +321,14 @@ class AuraClickerApplication:
         if not self.main_window:
             return
         config = self.main_window._build_click_config()
+        config["language"] = self.state.current_language
         self.start_main_click(config, self.main_window._set_status)
 
     def _hotkey_toggle_click(self) -> None:
         if not self.main_window:
             return
         config = self.main_window._build_click_config()
+        config["language"] = self.state.current_language
         self.toggle_main_click(config, self.main_window._set_status)
 
     def _hotkey_start_advanced(self) -> None:
@@ -336,6 +342,7 @@ class AuraClickerApplication:
             "temporal_jitter_enabled": self.state.advanced_execution.temporal_jitter_enabled,
             "temporal_jitter_min": self.state.advanced_execution.temporal_jitter_min,
             "temporal_jitter_max": self.state.advanced_execution.temporal_jitter_max,
+            "language": self.state.current_language,
         }
 
         def status(msg: str) -> None:
@@ -357,6 +364,7 @@ class AuraClickerApplication:
             "repeat_count": self.state.key_presser.repeat_count,
             "hold_key_down": self.state.key_presser.hold_key_down,
             "hold_duration_ms": self.state.key_presser.hold_duration_ms,
+            "language": self.state.current_language,
         }
 
         def status(msg: str) -> None:
@@ -403,7 +411,7 @@ class AuraClickerApplication:
         window.after(220, lambda: window.attributes("-topmost", False))
 
     def _on_close(self) -> None:
-        self.history.push("Fermeture application")
+        self.history.push(self._tf("history_app_closing"))
         self.click_worker.stop()
         self.sequence_worker.stop()
         self.key_worker.stop()

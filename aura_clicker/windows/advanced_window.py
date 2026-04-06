@@ -6,7 +6,7 @@ import customtkinter as ctk
 
 from ..capture import capture_hotkey_combination, capture_mouse_position
 from ..macro_recorder import MacroRecorder
-from ..translations import get_text
+from ..translations import format_text, get_text
 from ..utils import safe_int
 from ..widgets import CTkListbox
 
@@ -247,7 +247,7 @@ class AdvancedWindow(ctk.CTkToplevel):
         self._load_state()
 
     def _capture_target(self) -> None:
-        self.adv_status.configure(text="Capture position: cliquez n'importe où")
+        self.adv_status.configure(text=format_text(self._state.current_language, "status_capture_position"))
 
         def on_captured(x: int, y: int) -> None:
             self.after(0, lambda: self._apply_position(x, y))
@@ -259,10 +259,10 @@ class AdvancedWindow(ctk.CTkToplevel):
         self.y_entry.delete(0, "end")
         self.x_entry.insert(0, str(x))
         self.y_entry.insert(0, str(y))
-        self.adv_status.configure(text=f"Position capturée: {x}, {y}")
+        self.adv_status.configure(text=format_text(self._state.current_language, "status_coordinates_captured", x=x, y=y))
 
     def _capture_keys(self) -> None:
-        self.adv_status.configure(text="Capture touches en cours...")
+        self.adv_status.configure(text=format_text(self._state.current_language, "status_capture_keys"))
 
         def on_captured(combo: str) -> None:
             self.after(0, lambda: self._apply_keys(combo))
@@ -272,7 +272,7 @@ class AdvancedWindow(ctk.CTkToplevel):
     def _apply_keys(self, combo: str) -> None:
         self.key_preview.delete("1.0", "end")
         self.key_preview.insert("1.0", combo)
-        self.adv_status.configure(text=f"Touches capturées: {combo}")
+        self.adv_status.configure(text=format_text(self._state.current_language, "status_keys_captured", combo=combo))
 
     def _add_mouse_action(self) -> None:
         repeats = safe_int(self.repeats_entry.get(), default=1, minimum=1)
@@ -282,7 +282,7 @@ class AdvancedWindow(ctk.CTkToplevel):
         if self.target_mode.get() == "image":
             image_path = self.image_path_entry.get().strip()
             if not image_path:
-                self.adv_status.configure(text="Sélectionnez une image avant d'ajouter l'action")
+                self.adv_status.configure(text=format_text(self._state.current_language, "status_select_image_first"))
                 return
             action = {
                 "type": "image",
@@ -309,7 +309,7 @@ class AdvancedWindow(ctk.CTkToplevel):
     def _add_key_action(self) -> None:
         keys = self.key_preview.get("1.0", "end").strip()
         if not keys or keys in ("Aucune touche capturée", "No key captured"):
-            self.adv_status.configure(text="Capturez d'abord une combinaison")
+            self.adv_status.configure(text=format_text(self._state.current_language, "status_capture_combo_first"))
             return
 
         action = {"type": "keyboard", "keys": keys.lower()}
@@ -359,6 +359,7 @@ class AdvancedWindow(ctk.CTkToplevel):
             "temporal_jitter_enabled": self.temporal_jitter_var.get(),
             "temporal_jitter_min": jitter_min,
             "temporal_jitter_max": jitter_max,
+            "language": self._state.current_language,
         }
 
     def _start(self) -> None:
@@ -368,7 +369,7 @@ class AdvancedWindow(ctk.CTkToplevel):
 
     def _stop(self) -> None:
         self._on_stop()
-        self._set_status("Séquence avancée arrêtée")
+        self._set_status(format_text(self._state.current_language, "status_sequence_stopped"))
 
     def _set_status(self, text: str) -> None:
         self.after(0, lambda: self.adv_status.configure(text=text))
@@ -399,7 +400,7 @@ class AdvancedWindow(ctk.CTkToplevel):
 
     def _browse_image(self) -> None:
         image_path = filedialog.askopenfilename(
-            title="Sélectionner une image cible",
+            title=get_text(self._state.current_language, "dialog_select_target_image"),
             filetypes=[("Images", "*.png *.jpg *.jpeg *.webp"), ("Tous les fichiers", "*.*")],
         )
         if not image_path:
@@ -423,11 +424,11 @@ class AdvancedWindow(ctk.CTkToplevel):
     def _toggle_macro_recording(self) -> None:
         if self._macro_recorder.running:
             self._macro_recorder.stop()
-            self.record_macro_btn.configure(text="Enregistrer une macro (F9 pour Stop)")
-            self.adv_status.configure(text="Arrêt de l'enregistrement macro demandé")
+            self.record_macro_btn.configure(text=get_text(self._state.current_language, "record_macro"))
+            self.adv_status.configure(text=format_text(self._state.current_language, "status_macro_stop_requested"))
             return
 
-        self.record_macro_btn.configure(text="Stop enregistrement (F9)")
+        self.record_macro_btn.configure(text=get_text(self._state.current_language, "stop_macro"))
 
         def on_action(action: dict) -> None:
             self.after(0, lambda: self._append_recorded_action(action))
@@ -435,7 +436,13 @@ class AdvancedWindow(ctk.CTkToplevel):
         def on_status(message: str) -> None:
             self.after(0, lambda: self._on_macro_status(message))
 
-        self._macro_recorder.start(on_action=on_action, on_status=on_status, stop_key="f9")
+        self._macro_recorder.start(
+            on_action=on_action,
+            on_status=on_status,
+            stop_key="f9",
+            status_running=format_text(self._state.current_language, "macro_recording_running"),
+            status_stopped=format_text(self._state.current_language, "macro_recording_stopped"),
+        )
 
     def _append_recorded_action(self, action: dict) -> None:
         self._state.sequence_actions.append(action)
@@ -444,7 +451,7 @@ class AdvancedWindow(ctk.CTkToplevel):
 
     def _on_macro_status(self, message: str) -> None:
         self.adv_status.configure(text=message)
-        if any(token in message.lower() for token in ("arrêté", "stopped")):
+        if message == format_text(self._state.current_language, "macro_recording_stopped"):
             self.record_macro_btn.configure(text=get_text(self._state.current_language, "record_macro"))
 
     def update_ui_language(self) -> None:

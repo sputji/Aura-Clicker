@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from .app_state import AppState
-from .constants import PROFILE_EXTENSION
+from .constants import APP_VERSION, PROFILE_EXTENSION
 
 
 class ProfileManager:
@@ -18,7 +18,7 @@ class ProfileManager:
         payload = {
             "meta": {
                 "name": "Aura-Clicker Profile",
-                "version": "0.1.1",
+                "version": APP_VERSION,
             },
             "main_click": asdict(state.main_click),
             "advanced_execution": asdict(state.advanced_execution),

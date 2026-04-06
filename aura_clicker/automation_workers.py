@@ -9,6 +9,7 @@ import keyboard
 import pyautogui
 
 from .structured_error_logger import get_structured_logger
+from .translations import format_text
 from .utils import interval_to_seconds
 
 
@@ -44,6 +45,7 @@ class ClickWorker(BaseWorker):
     ) -> None:
         def _loop() -> None:
             try:
+                language = str(config.get("language", "fr"))
                 interval = interval_to_seconds(
                     config["hours"],
                     config["minutes"],
@@ -60,9 +62,9 @@ class ClickWorker(BaseWorker):
                 if temporal_jitter_min > temporal_jitter_max:
                     temporal_jitter_min, temporal_jitter_max = temporal_jitter_max, temporal_jitter_min
 
-                on_status("Auto-clic actif")
+                on_status(format_text(language, "worker_click_running"))
                 if on_action:
-                    on_action("Auto-clic démarré")
+                    on_action(format_text(language, "worker_click_started"))
                 while not self._stop_event.is_set() and (infinite or remaining > 0):
                     if not config["current_position"]:
                         pyautogui.moveTo(config["x"], config["y"])
@@ -70,11 +72,16 @@ class ClickWorker(BaseWorker):
                     pyautogui.click(button=mouse_button, clicks=clicks_per_action)
                     if on_action:
                         if config["current_position"]:
-                            on_action(f"Clic {mouse_button} ({clicks_per_action}x) à la position courante")
-                        else:
                             on_action(
-                                f"Clic {mouse_button} ({clicks_per_action}x) en X={config['x']} Y={config['y']}"
+                                format_text(
+                                    language,
+                                    "worker_click_done_here",
+                                    button=mouse_button,
+                                    count=clicks_per_action,
+                                )
                             )
+                        else:
+                            on_action(format_text(language, "worker_click_done_xy", button=mouse_button, count=clicks_per_action, x=config["x"], y=config["y"]))
 
                     if not infinite:
                         remaining -= 1
@@ -93,13 +100,13 @@ class ClickWorker(BaseWorker):
                         exc,
                         context={"worker": "ClickWorker", "config": config},
                     )
-                on_status(f"Erreur auto-clic: {exc}")
+                on_status(format_text(language, "worker_click_error", error=str(exc)))
                 if on_action:
-                    on_action(f"Erreur auto-clic: {exc}")
+                    on_action(format_text(language, "worker_click_error", error=str(exc)))
             finally:
-                on_status("Auto-clic arrêté")
+                on_status(format_text(language, "worker_click_stopped"))
                 if on_action:
-                    on_action("Auto-clic arrêté")
+                    on_action(format_text(language, "worker_click_stopped"))
 
         self._start_thread(_loop)
 
@@ -113,6 +120,7 @@ class KeyPresserWorker(BaseWorker):
     ) -> None:
         def _loop() -> None:
             try:
+                language = str(config.get("language", "fr"))
                 interval = interval_to_seconds(
                     config["hours"],
                     config["minutes"],
@@ -126,12 +134,12 @@ class KeyPresserWorker(BaseWorker):
                 hold_duration = max(0.01, config["hold_duration_ms"] / 1000)
 
                 if not key_name:
-                    on_status("Aucune touche sélectionnée")
+                    on_status(format_text(language, "worker_key_no_selection"))
                     return
 
-                on_status(f"Auto-touche actif: {key_name}")
+                on_status(format_text(language, "worker_key_running", key_name=key_name))
                 if on_action:
-                    on_action(f"Auto-touche démarré: {key_name}")
+                    on_action(format_text(language, "worker_key_started", key_name=key_name))
                 while not self._stop_event.is_set() and (infinite or remaining > 0):
                     if hold_key:
                         keyboard.press(key_name)
@@ -143,7 +151,7 @@ class KeyPresserWorker(BaseWorker):
                         keyboard.send(key_name)
 
                     if on_action:
-                        on_action(f"Touche exécutée: {key_name}")
+                        on_action(format_text(language, "worker_key_executed", key_name=key_name))
 
                     if not infinite:
                         remaining -= 1
@@ -158,13 +166,13 @@ class KeyPresserWorker(BaseWorker):
                         exc,
                         context={"worker": "KeyPresserWorker", "config": config},
                     )
-                on_status(f"Erreur auto-touche: {exc}")
+                on_status(format_text(language, "worker_key_error", error=str(exc)))
                 if on_action:
-                    on_action(f"Erreur auto-touche: {exc}")
+                    on_action(format_text(language, "worker_key_error", error=str(exc)))
             finally:
-                on_status("Auto-touche arrêté")
+                on_status(format_text(language, "worker_key_stopped"))
                 if on_action:
-                    on_action("Auto-touche arrêté")
+                    on_action(format_text(language, "worker_key_stopped"))
 
         self._start_thread(_loop)
 
@@ -179,8 +187,9 @@ class SequenceWorker(BaseWorker):
     ) -> None:
         def _run_sequence() -> None:
             try:
+                language = str(config.get("language", "fr"))
                 if not sequence:
-                    on_status("Aucune action dans la séquence")
+                    on_status(format_text(language, "worker_seq_empty"))
                     return
 
                 total_interval = int(config["interval_seconds"]) + (int(config["interval_milliseconds"]) / 1000.0)
@@ -195,9 +204,9 @@ class SequenceWorker(BaseWorker):
                 if temporal_jitter_min > temporal_jitter_max:
                     temporal_jitter_min, temporal_jitter_max = temporal_jitter_max, temporal_jitter_min
 
-                on_status("Séquence avancée en cours")
+                on_status(format_text(language, "worker_seq_running"))
                 if on_action:
-                    on_action("Séquence avancée démarrée")
+                    on_action(format_text(language, "worker_seq_started"))
                 while self.running and not self._stop_event.is_set():
                     for action in sequence:
                         if self._stop_event.is_set():
@@ -217,9 +226,7 @@ class SequenceWorker(BaseWorker):
                             for _ in range(max(1, action["repeats"])):
                                 pyautogui.click(button=button, clicks=clicks_per_trigger)
                                 if on_action:
-                                    on_action(
-                                        f"Action souris: X={x} Y={y} bouton={button} type={click_type}"
-                                    )
+                                    on_action(format_text(language, "worker_seq_mouse_action", x=x, y=y, button=button, click_type=click_type))
                                 click_delay = total_interval
                                 if temporal_jitter_enabled:
                                     click_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
@@ -247,9 +254,7 @@ class SequenceWorker(BaseWorker):
                                     pyautogui.moveTo(target_x, target_y)
                                     pyautogui.click(button=button, clicks=clicks_per_trigger)
                                     if on_action:
-                                        on_action(
-                                            f"Action image: trouvé ({target_x}, {target_y}) fichier={image_path}"
-                                        )
+                                        on_action(format_text(language, "worker_seq_image_found", x=target_x, y=target_y, image_path=image_path))
                                     break
 
                                 logger = get_structured_logger()
@@ -268,9 +273,7 @@ class SequenceWorker(BaseWorker):
                                     )
 
                                 if on_action:
-                                    on_action(
-                                        f"Image non trouvée ({attempt + 1}/{retries}) : {image_path}"
-                                    )
+                                    on_action(format_text(language, "worker_seq_image_not_found", attempt=attempt + 1, retries=retries, image_path=image_path))
 
                                 retry_delay = total_interval
                                 if temporal_jitter_enabled:
@@ -281,12 +284,12 @@ class SequenceWorker(BaseWorker):
                                     break
 
                             if not found and on_action:
-                                on_action("Action image ignorée après épuisement des tentatives")
+                                on_action(format_text(language, "worker_seq_image_skipped"))
 
                         elif action["type"] == "keyboard":
                             keyboard.send(action["keys"])
                             if on_action:
-                                on_action(f"Action clavier: {action['keys']}")
+                                on_action(format_text(language, "worker_seq_keyboard_action", keys=action["keys"]))
 
                         action_delay = total_interval
                         if temporal_jitter_enabled:
@@ -310,12 +313,12 @@ class SequenceWorker(BaseWorker):
                         exc,
                         context={"worker": "SequenceWorker", "config": config},
                     )
-                on_status(f"Erreur séquence avancée: {exc}")
+                on_status(format_text(language, "worker_seq_error", error=str(exc)))
                 if on_action:
-                    on_action(f"Erreur séquence avancée: {exc}")
+                    on_action(format_text(language, "worker_seq_error", error=str(exc)))
             finally:
-                on_status("Séquence avancée arrêtée")
+                on_status(format_text(language, "worker_seq_stopped"))
                 if on_action:
-                    on_action("Séquence avancée arrêtée")
+                    on_action(format_text(language, "worker_seq_stopped"))
 
         self._start_thread(_run_sequence)
