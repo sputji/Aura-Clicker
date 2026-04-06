@@ -10,8 +10,9 @@ class KeyPresserWindow(ctk.CTkToplevel):
     def __init__(self, master, state, on_start, on_stop, on_save):
         super().__init__(master)
         self.title("Pression de touche automatique")
-        self.geometry("860x560")
-        self.minsize(860, 560)
+        self.geometry("900x650")
+        self.minsize(900, 650)
+        self.transient(master)
         try:
             icon_path = getattr(master, "icon_path", None)
             if icon_path:
@@ -26,7 +27,12 @@ class KeyPresserWindow(ctk.CTkToplevel):
 
         self._build_ui()
         self._load_from_state()
-        self._autosize_and_focus()
+
+        # Force la fenêtre au premier plan de l'OS
+        self.attributes("-topmost", True)
+        # Attend 200ms que la fenêtre soit dessinée, puis retire le topmost pour qu'elle redescende dans le flux normal, tout en restant focus
+        self.after(200, lambda: self.attributes("-topmost", False))
+        self.focus_force()
 
     def _build_ui(self) -> None:
         self.grid_columnconfigure(0, weight=1)
@@ -191,12 +197,3 @@ class KeyPresserWindow(ctk.CTkToplevel):
         if items:
             self.history_box.insert("1.0", "\n".join(items) + "\n")
 
-    def _autosize_and_focus(self) -> None:
-        self.update_idletasks()
-        req_w = self.winfo_reqwidth()
-        req_h = self.winfo_reqheight()
-        self.minsize(max(860, req_w), max(560, req_h))
-        self.lift()
-        self.attributes("-topmost", True)
-        self.focus_force()
-        self.after(220, lambda: self.attributes("-topmost", False))

@@ -16,6 +16,7 @@ class AdvancedWindow(ctk.CTkToplevel):
         self.title("Créateur d'Automatisation Avancé")
         self.geometry("1180x760")
         self.minsize(1080, 700)
+        self.transient(master)
         try:
             icon_path = getattr(master, "icon_path", None)
             if icon_path:
@@ -31,7 +32,12 @@ class AdvancedWindow(ctk.CTkToplevel):
 
         self._build_ui()
         self._load_state()
-        self._autosize_and_focus()
+
+        # Force la fenêtre au premier plan de l'OS
+        self.attributes("-topmost", True)
+        # Attend 200ms que la fenêtre soit dessinée, puis retire le topmost pour qu'elle redescende dans le flux normal, tout en restant focus
+        self.after(200, lambda: self.attributes("-topmost", False))
+        self.focus_force()
 
     def _build_ui(self) -> None:
         self.grid_columnconfigure((0, 1, 2), weight=1)
@@ -407,16 +413,6 @@ class AdvancedWindow(ctk.CTkToplevel):
         self.adv_status.configure(text=message)
         if "arrêté" in message.lower():
             self.record_macro_btn.configure(text="Enregistrer une macro (F9 pour Stop)")
-
-    def _autosize_and_focus(self) -> None:
-        self.update_idletasks()
-        req_w = self.winfo_reqwidth()
-        req_h = self.winfo_reqheight()
-        self.minsize(max(1080, req_w), max(700, req_h))
-        self.lift()
-        self.attributes("-topmost", True)
-        self.focus_force()
-        self.after(220, lambda: self.attributes("-topmost", False))
 
     def destroy(self) -> None:
         if self._macro_recorder.running:

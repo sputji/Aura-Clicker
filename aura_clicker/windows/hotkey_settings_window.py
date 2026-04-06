@@ -7,7 +7,9 @@ class HotkeySettingsWindow(ctk.CTkToplevel):
     def __init__(self, master, initial_hotkeys: dict[str, str], on_save):
         super().__init__(master)
         self.title("Configuration des raccourcis")
-        self.geometry("420x240")
+        self.geometry("900x650")
+        self.minsize(900, 650)
+        self.transient(master)
         self.resizable(False, False)
         try:
             icon_path = getattr(master, "icon_path", None)
@@ -36,7 +38,12 @@ class HotkeySettingsWindow(ctk.CTkToplevel):
 
         ctk.CTkButton(self, text="Enregistrer", width=160, command=self._save).place(x=25, y=185)
         ctk.CTkButton(self, text="Réinitialiser", width=160, fg_color="#6B7280", hover_color="#4B5563", command=self._reset).place(x=225, y=185)
-        self._autosize_and_focus()
+
+    # Force la fenêtre au premier plan de l'OS
+    self.attributes("-topmost", True)
+    # Attend 200ms que la fenêtre soit dessinée, puis retire le topmost pour qu'elle redescende dans le flux normal, tout en restant focus
+    self.after(200, lambda: self.attributes("-topmost", False))
+    self.focus_force()
 
     def _save(self) -> None:
         payload = {
@@ -56,12 +63,3 @@ class HotkeySettingsWindow(ctk.CTkToplevel):
         self.stop_entry.insert(0, self._defaults.get("stop", "F7"))
         self.toggle_entry.insert(0, self._defaults.get("toggle", "F8"))
 
-    def _autosize_and_focus(self) -> None:
-        self.update_idletasks()
-        req_w = self.winfo_reqwidth()
-        req_h = self.winfo_reqheight()
-        self.minsize(max(420, req_w), max(240, req_h))
-        self.lift()
-        self.attributes("-topmost", True)
-        self.focus_force()
-        self.after(220, lambda: self.attributes("-topmost", False))
