@@ -293,6 +293,8 @@ class AuraClickerApplication:
         self.state.main_click.temporal_jitter_enabled = bool(config.get("temporal_jitter_enabled", False))
         self.state.main_click.temporal_jitter_min = float(config.get("temporal_jitter_min", 0.008))
         self.state.main_click.temporal_jitter_max = float(config.get("temporal_jitter_max", 0.015))
+        self.state.main_click.humanized_mode = bool(config.get("humanized_mode", False))
+        self.state.main_click.humanized_jitter = int(config.get("humanized_jitter", 3))
         self._persist_state()
 
     def _save_advanced_to_state(self, config: dict) -> None:

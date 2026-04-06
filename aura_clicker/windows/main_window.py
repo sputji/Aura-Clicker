@@ -147,6 +147,17 @@ class MainWindow(ctk.CTkFrame):
         self.temporal_jitter_checkbox = ctk.CTkCheckBox(options_frame, text="", variable=self.temporal_jitter_var)
         self.temporal_jitter_checkbox.grid(row=3, column=0, sticky="w", padx=14, pady=(0, 8))
 
+        self.humanized_var = ctk.BooleanVar(value=False)
+        self.humanized_checkbox = ctk.CTkCheckBox(options_frame, text="", variable=self.humanized_var)
+        self.humanized_checkbox.grid(row=4, column=0, sticky="w", padx=14, pady=(0, 8))
+
+        humanized_row = ctk.CTkFrame(options_frame, fg_color="transparent")
+        humanized_row.grid(row=5, column=0, sticky="w", padx=14, pady=(0, 12))
+        self.main_pixel_jitter_label = ctk.CTkLabel(humanized_row, text="")
+        self.main_pixel_jitter_label.pack(side="left", padx=(0, 6))
+        self.main_jitter_entry = ctk.CTkEntry(humanized_row, width=95)
+        self.main_jitter_entry.pack(side="left")
+
         min_row = ctk.CTkFrame(options_frame, fg_color="transparent")
         min_row.grid(row=3, column=1, sticky="ew", padx=14, pady=(0, 8))
         self.min_seconds_label = ctk.CTkLabel(min_row, text="")
@@ -155,7 +166,7 @@ class MainWindow(ctk.CTkFrame):
         self.temporal_jitter_min_entry.pack(side="left")
 
         max_row = ctk.CTkFrame(options_frame, fg_color="transparent")
-        max_row.grid(row=4, column=1, sticky="ew", padx=14, pady=(0, 12))
+        max_row.grid(row=5, column=1, sticky="ew", padx=14, pady=(0, 12))
         self.max_seconds_label = ctk.CTkLabel(max_row, text="")
         self.max_seconds_label.pack(side="left", padx=(0, 6))
         self.temporal_jitter_max_entry = ctk.CTkEntry(max_row, width=95)
@@ -231,6 +242,7 @@ class MainWindow(ctk.CTkFrame):
         self.y_entry.delete(0, "end")
         self.temporal_jitter_min_entry.delete(0, "end")
         self.temporal_jitter_max_entry.delete(0, "end")
+        self.main_jitter_entry.delete(0, "end")
 
         data = self._state.main_click
         lang = self._state.current_language
@@ -252,6 +264,8 @@ class MainWindow(ctk.CTkFrame):
         self.temporal_jitter_var.set(data.temporal_jitter_enabled)
         self.temporal_jitter_min_entry.insert(0, str(data.temporal_jitter_min))
         self.temporal_jitter_max_entry.insert(0, str(data.temporal_jitter_max))
+        self.humanized_var.set(bool(getattr(data, "humanized_mode", False)))
+        self.main_jitter_entry.insert(0, str(int(getattr(data, "humanized_jitter", 3))))
         self.topmost_var.set(data.always_on_top)
         self._toggle_topmost()
         self.update_ui_language()
@@ -295,6 +309,8 @@ class MainWindow(ctk.CTkFrame):
             "temporal_jitter_enabled": self.temporal_jitter_var.get(),
             "temporal_jitter_min": jitter_min,
             "temporal_jitter_max": jitter_max,
+            "humanized_mode": self.humanized_var.get(),
+            "humanized_jitter": safe_int(self.main_jitter_entry.get(), default=3, minimum=0),
             "language": self._state.current_language,
         }
 
@@ -359,6 +375,8 @@ class MainWindow(ctk.CTkFrame):
         self.button_label.configure(text=get_text(lang, "button"))
         self.click_type_label.configure(text=get_text(lang, "click_type"))
         self.temporal_jitter_checkbox.configure(text=get_text(lang, "temporal_jitter"))
+        self.humanized_checkbox.configure(text=get_text(lang, "humanized_main_mode"))
+        self.main_pixel_jitter_label.configure(text=get_text(lang, "pixel_jitter"))
         self.min_seconds_label.configure(text=get_text(lang, "min_seconds"))
         self.max_seconds_label.configure(text=get_text(lang, "max_seconds"))
 

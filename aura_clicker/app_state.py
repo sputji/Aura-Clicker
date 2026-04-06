@@ -25,6 +25,8 @@ class MainClickSettings:
     temporal_jitter_enabled: bool = False
     temporal_jitter_min: float = 0.008
     temporal_jitter_max: float = 0.015
+    humanized_mode: bool = False
+    humanized_jitter: int = 3
 
 
 @dataclass

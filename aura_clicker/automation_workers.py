@@ -59,6 +59,8 @@ class ClickWorker(BaseWorker):
                 temporal_jitter_enabled = bool(config.get("temporal_jitter_enabled", False))
                 temporal_jitter_min = float(config.get("temporal_jitter_min", 0.008))
                 temporal_jitter_max = float(config.get("temporal_jitter_max", 0.015))
+                humanized_mode = bool(config.get("humanized_mode", False))
+                humanized_jitter = max(0, int(config.get("humanized_jitter", 3)))
                 if temporal_jitter_min > temporal_jitter_max:
                     temporal_jitter_min, temporal_jitter_max = temporal_jitter_max, temporal_jitter_min
 
@@ -66,8 +68,20 @@ class ClickWorker(BaseWorker):
                 if on_action:
                     on_action(format_text(language, "worker_click_started"))
                 while not self._stop_event.is_set() and (infinite or remaining > 0):
-                    if not config["current_position"]:
-                        pyautogui.moveTo(config["x"], config["y"])
+                    if config["current_position"]:
+                        if humanized_mode and humanized_jitter > 0:
+                            base_x, base_y = pyautogui.position()
+                            pyautogui.moveTo(
+                                base_x + random.randint(-humanized_jitter, humanized_jitter),
+                                base_y + random.randint(-humanized_jitter, humanized_jitter),
+                            )
+                    else:
+                        target_x = int(config["x"])
+                        target_y = int(config["y"])
+                        if humanized_mode and humanized_jitter > 0:
+                            target_x += random.randint(-humanized_jitter, humanized_jitter)
+                            target_y += random.randint(-humanized_jitter, humanized_jitter)
+                        pyautogui.moveTo(target_x, target_y)
 
                     pyautogui.click(button=mouse_button, clicks=clicks_per_action)
                     if on_action:
@@ -88,7 +102,7 @@ class ClickWorker(BaseWorker):
 
                     wait_delay = interval
                     if temporal_jitter_enabled:
-                        wait_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
+                        wait_delay += random.uniform(temporal_jitter_min, temporal_jitter_max)
 
                     if self._stop_event.wait(max(0.001, wait_delay)):
                         break
@@ -194,7 +208,8 @@ class SequenceWorker(BaseWorker):
 
                 total_interval = int(config["interval_seconds"]) + (int(config["interval_milliseconds"]) / 1000.0)
                 total_interval = max(0.0, total_interval)
-                repeat_sequence = config["repeat_sequence"]
+                repeat_raw = config.get("repeat_sequence", False)
+                repeat_sequence = repeat_raw is True or str(repeat_raw).strip().lower() in {"1", "true", "yes", "on"}
                 repeat_delay_seconds = max(0.0, float(config.get("repeat_delay_seconds", 0.0)))
                 humanized_mode = config["humanized_mode"]
                 jitter = max(0, config["humanized_jitter"])
@@ -207,7 +222,13 @@ class SequenceWorker(BaseWorker):
                 on_status(format_text(language, "worker_seq_running"))
                 if on_action:
                     on_action(format_text(language, "worker_seq_started"))
-                while self.running and not self._stop_event.is_set():
+
+                def _compute_delay(base: float) -> float:
+                    if temporal_jitter_enabled:
+                        return max(0.0, base + random.uniform(temporal_jitter_min, temporal_jitter_max))
+                    return max(0.0, base)
+
+                while not self._stop_event.is_set():
                     for action in sequence:
                         if self._stop_event.is_set():
                             break
@@ -223,15 +244,16 @@ class SequenceWorker(BaseWorker):
                             click_type = action["click_type"]
                             clicks_per_trigger = 2 if click_type == "double" else 1
 
-                            for _ in range(max(1, action["repeats"])):
+                            repeat_count = max(1, int(action.get("repeats", 1)))
+                            for index in range(repeat_count):
                                 pyautogui.click(button=button, clicks=clicks_per_trigger)
                                 if on_action:
                                     on_action(format_text(language, "worker_seq_mouse_action", x=x, y=y, button=button, click_type=click_type))
-                                click_delay = total_interval
-                                if temporal_jitter_enabled:
-                                    click_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
-                                if click_delay > 0:
-                                    time.sleep(click_delay)
+                                # Delay only between repeated clicks of the same action.
+                                if index < repeat_count - 1:
+                                    click_delay = _compute_delay(total_interval)
+                                    if click_delay > 0 and self._stop_event.wait(click_delay):
+                                        break
                                 if self._stop_event.is_set():
                                     break
 
@@ -275,11 +297,9 @@ class SequenceWorker(BaseWorker):
                                 if on_action:
                                     on_action(format_text(language, "worker_seq_image_not_found", attempt=attempt + 1, retries=retries, image_path=image_path))
 
-                                retry_delay = total_interval
-                                if temporal_jitter_enabled:
-                                    retry_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
-                                if retry_delay > 0:
-                                    time.sleep(retry_delay)
+                                retry_delay = _compute_delay(total_interval)
+                                if retry_delay > 0 and self._stop_event.wait(retry_delay):
+                                    break
                                 if self._stop_event.is_set():
                                     break
 
@@ -291,12 +311,9 @@ class SequenceWorker(BaseWorker):
                             if on_action:
                                 on_action(format_text(language, "worker_seq_keyboard_action", keys=action["keys"]))
 
-                        action_delay = total_interval
-                        if temporal_jitter_enabled:
-                            action_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
-
-                        if action_delay > 0:
-                            time.sleep(action_delay)
+                        action_delay = _compute_delay(total_interval)
+                        if action_delay > 0 and self._stop_event.wait(action_delay):
+                            break
                         if self._stop_event.is_set():
                             break
 
