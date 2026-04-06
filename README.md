@@ -66,8 +66,10 @@ Conçu pour les joueurs, les testeurs, les automatiseurs et les utilisateurs pro
 | Arrêter séquence avancée | `F4` |
 | Démarrer presseur de touches | `F1` |
 | Arrêter presseur de touches | `F2` |
+| Arrêter enregistrement macro | `F9` |
 
-> Toutes les hotkeys sont **entièrement personnalisables** depuis les paramètres.
+> Les hotkeys de démarrage/arrêt sont personnalisables depuis les paramètres.
+> Le raccourci `F9` est dédié à l'arrêt de l'enregistrement macro en mode avancé.
 
 ### 📋 Historique des actions
 - Journal complet de toutes les actions effectuées
