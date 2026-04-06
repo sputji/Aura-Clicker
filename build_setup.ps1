@@ -26,4 +26,4 @@ if (-not $iscc) {
 Set-Location (Join-Path $PWD "installer")
 & $iscc "AuraClicker.iss"
 
-Write-Output "Setup généré: $(Join-Path (Split-Path $PWD -Parent) 'dist-installer\Aura-Clicker-Setup-0.1.1b.exe')"
+Write-Output "Setup généré: $(Join-Path (Split-Path $PWD -Parent) 'dist-installer\Aura-Clicker-Setup-0.1.2.exe')"
