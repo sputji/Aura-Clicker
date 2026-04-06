@@ -161,6 +161,10 @@ Les profils sont stockés en `.aura_profile.json` et peuvent être partagés ent
 
 ### v0.1.5 — 2026-04-07
 - Correction du calcul exact de l'intervalle des séquences avancées: `secondes + millisecondes / 1000`
+- Correctif critique de la répétition continue des séquences avancées
+- Correctif vitesse mode avancé: suppression du double délai, cadence réellement pilotable
+- Jitter temporel corrigé: appliqué en complément de la vitesse choisie
+- Ajout d'un mode humanisé spatial sur l'auto-clic principal (décalage pixels)
 - Ajout de la propagation de langue (FR/EN) dans les workers runtime (auto-clic, auto-touche, séquence avancée)
 - Traduction de tous les statuts métiers runtime (historique, erreurs, demandes d'arrêt, profils import/export)
 - Uniformisation des messages de capture/callback dans les fenêtres Main, Advanced et Key Presser

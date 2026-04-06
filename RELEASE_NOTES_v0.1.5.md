@@ -9,6 +9,17 @@ Cette version fiabilise le timing d'execution des sequences avancees et finalise
     - `secondes + (millisecondes / 1000.0)`
   - Suppression des effets de bord sur le delai effectif en execution.
 
+- Correctif repetition continue (mode Avance)
+  - Reprise de boucle sequence fiable quand "Repeter la sequence continuellement" est active.
+  - Normalisation robuste de la valeur booleenne de repetition.
+
+- Correctif vitesse de clic en mode Avance
+  - Suppression du double delai entre actions qui faussait la vitesse percue.
+  - Le reglage secondes/ms influence maintenant de facon directe la cadence d'execution.
+
+- Correctif jitter temporel
+  - Le jitter temporel s'ajoute au delai de base au lieu de le remplacer, pour conserver la vitesse choisie.
+
 ### Nouvelles ameliorations
 
 - Internationalisation runtime complete FR/EN
@@ -27,6 +38,10 @@ Cette version fiabilise le timing d'execution des sequences avancees et finalise
   - Main window: statuts de capture/sauvegarde/arret
   - Advanced window: captures, sequence, macro recorder
   - Key Presser window: captures, sauvegarde, arret
+
+- Mode humanise ajoute au clic principal
+  - Option de decalage spatial (pixels) sur l'auto-clic principal.
+  - Valeur recommandee par defaut: 3 pixels.
 
 - Macro recorder localise
   - Message "enregistrement en cours"
