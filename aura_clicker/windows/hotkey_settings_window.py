@@ -7,8 +7,8 @@ class HotkeySettingsWindow(ctk.CTkToplevel):
     def __init__(self, master, initial_hotkeys: dict[str, str], on_save):
         super().__init__(master)
         self.title("Configuration des raccourcis")
-        self.geometry("900x650")
-        self.minsize(900, 650)
+        self.geometry("460x280")
+        self.minsize(460, 280)
         self.transient(master)
         self.resizable(False, False)
         try:
