@@ -139,7 +139,7 @@ class AuraClickerApplication:
 
     def open_advanced_window(self) -> None:
         if self.advanced_window is not None and self.advanced_window.winfo_exists():
-            self.advanced_window.focus_force()
+            self._bring_window_to_front(self.advanced_window)
             return
 
         self.advanced_window = AdvancedWindow(
@@ -150,10 +150,11 @@ class AuraClickerApplication:
             on_save_state=self._persist_state,
         )
         self.advanced_window.set_history(self.history.get_events())
+        self._bring_window_to_front(self.advanced_window)
 
     def open_key_presser_window(self) -> None:
         if self.key_window is not None and self.key_window.winfo_exists():
-            self.key_window.focus_force()
+            self._bring_window_to_front(self.key_window)
             return
 
         self.key_window = KeyPresserWindow(
@@ -164,6 +165,7 @@ class AuraClickerApplication:
             on_save=self.save_key_settings,
         )
         self.key_window.set_history(self.history.get_events())
+        self._bring_window_to_front(self.key_window)
 
     def start_advanced(self, config: dict, sequence: list[dict], status_callback) -> None:
         self._save_advanced_to_state(config)
@@ -280,6 +282,9 @@ class AuraClickerApplication:
         self.state.main_click.y = config["y"]
         self.state.main_click.mouse_button = config["mouse_button"]
         self.state.main_click.click_type = config["click_type"]
+        self.state.main_click.temporal_jitter_enabled = bool(config.get("temporal_jitter_enabled", False))
+        self.state.main_click.temporal_jitter_min = float(config.get("temporal_jitter_min", 0.008))
+        self.state.main_click.temporal_jitter_max = float(config.get("temporal_jitter_max", 0.015))
         self._persist_state()
 
     def _save_advanced_to_state(self, config: dict) -> None:
@@ -288,6 +293,10 @@ class AuraClickerApplication:
         self.state.advanced_execution.interval_milliseconds = config["interval_milliseconds"]
         self.state.advanced_execution.humanized_mode = config["humanized_mode"]
         self.state.advanced_execution.humanized_jitter = config["humanized_jitter"]
+        self.state.advanced_execution.repeat_delay_seconds = float(config.get("repeat_delay_seconds", 0.0))
+        self.state.advanced_execution.temporal_jitter_enabled = bool(config.get("temporal_jitter_enabled", False))
+        self.state.advanced_execution.temporal_jitter_min = float(config.get("temporal_jitter_min", 0.008))
+        self.state.advanced_execution.temporal_jitter_max = float(config.get("temporal_jitter_max", 0.015))
 
     def _save_key_to_state(self, config: dict) -> None:
         self.state.key_presser.key_name = config["key_name"]
@@ -315,10 +324,14 @@ class AuraClickerApplication:
     def _hotkey_start_advanced(self) -> None:
         config = {
             "repeat_sequence": self.state.advanced_execution.repeat_sequence,
+            "repeat_delay_seconds": self.state.advanced_execution.repeat_delay_seconds,
             "interval_seconds": self.state.advanced_execution.interval_seconds,
             "interval_milliseconds": self.state.advanced_execution.interval_milliseconds,
             "humanized_mode": self.state.advanced_execution.humanized_mode,
             "humanized_jitter": self.state.advanced_execution.humanized_jitter,
+            "temporal_jitter_enabled": self.state.advanced_execution.temporal_jitter_enabled,
+            "temporal_jitter_min": self.state.advanced_execution.temporal_jitter_min,
+            "temporal_jitter_max": self.state.advanced_execution.temporal_jitter_max,
         }
 
         def status(msg: str) -> None:
@@ -364,9 +377,16 @@ class AuraClickerApplication:
     def _window_alive(self, root, window_type) -> bool:
         for child in root.winfo_children():
             if isinstance(child, window_type) and child.winfo_exists():
-                child.focus_force()
+                self._bring_window_to_front(child)
                 return True
         return False
+
+    def _bring_window_to_front(self, window) -> None:
+        window.update_idletasks()
+        window.lift()
+        window.attributes("-topmost", True)
+        window.focus_force()
+        window.after(220, lambda: window.attributes("-topmost", False))
 
     def _on_close(self) -> None:
         self.history.push("Fermeture application")

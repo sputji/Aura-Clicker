@@ -26,6 +26,7 @@ class KeyPresserWindow(ctk.CTkToplevel):
 
         self._build_ui()
         self._load_from_state()
+        self._autosize_and_focus()
 
     def _build_ui(self) -> None:
         self.grid_columnconfigure(0, weight=1)
@@ -189,3 +190,13 @@ class KeyPresserWindow(ctk.CTkToplevel):
         self.history_box.delete("1.0", "end")
         if items:
             self.history_box.insert("1.0", "\n".join(items) + "\n")
+
+    def _autosize_and_focus(self) -> None:
+        self.update_idletasks()
+        req_w = self.winfo_reqwidth()
+        req_h = self.winfo_reqheight()
+        self.minsize(max(860, req_w), max(560, req_h))
+        self.lift()
+        self.attributes("-topmost", True)
+        self.focus_force()
+        self.after(220, lambda: self.attributes("-topmost", False))

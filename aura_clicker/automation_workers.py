@@ -54,6 +54,11 @@ class ClickWorker(BaseWorker):
                 clicks_per_action = 2 if config["click_type"] == "double" else 1
                 infinite = config["infinite"]
                 remaining = max(1, config["repeat_count"])
+                temporal_jitter_enabled = bool(config.get("temporal_jitter_enabled", False))
+                temporal_jitter_min = float(config.get("temporal_jitter_min", 0.008))
+                temporal_jitter_max = float(config.get("temporal_jitter_max", 0.015))
+                if temporal_jitter_min > temporal_jitter_max:
+                    temporal_jitter_min, temporal_jitter_max = temporal_jitter_max, temporal_jitter_min
 
                 on_status("Auto-clic actif")
                 if on_action:
@@ -74,7 +79,11 @@ class ClickWorker(BaseWorker):
                     if not infinite:
                         remaining -= 1
 
-                    if self._stop_event.wait(interval):
+                    wait_delay = interval
+                    if temporal_jitter_enabled:
+                        wait_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
+
+                    if self._stop_event.wait(max(0.001, wait_delay)):
                         break
             except Exception as exc:
                 logger = get_structured_logger()
@@ -176,15 +185,19 @@ class SequenceWorker(BaseWorker):
 
                 interval = interval_to_seconds(0, 0, config["interval_seconds"], config["interval_milliseconds"])
                 repeat_sequence = config["repeat_sequence"]
+                repeat_delay_seconds = max(0.0, float(config.get("repeat_delay_seconds", 0.0)))
                 humanized_mode = config["humanized_mode"]
                 jitter = max(0, config["humanized_jitter"])
+                temporal_jitter_enabled = bool(config.get("temporal_jitter_enabled", False))
+                temporal_jitter_min = float(config.get("temporal_jitter_min", 0.008))
+                temporal_jitter_max = float(config.get("temporal_jitter_max", 0.015))
+                if temporal_jitter_min > temporal_jitter_max:
+                    temporal_jitter_min, temporal_jitter_max = temporal_jitter_max, temporal_jitter_min
 
                 on_status("Séquence avancée en cours")
                 if on_action:
                     on_action("Séquence avancée démarrée")
-                keep_running = True
-
-                while keep_running and not self._stop_event.is_set():
+                while self.running and not self._stop_event.is_set():
                     for action in sequence:
                         if self._stop_event.is_set():
                             break
@@ -206,17 +219,82 @@ class SequenceWorker(BaseWorker):
                                     on_action(
                                         f"Action souris: X={x} Y={y} bouton={button} type={click_type}"
                                     )
-                                time.sleep(0.01)
+                                click_delay = 0.01
+                                if temporal_jitter_enabled:
+                                    click_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
+                                if self._stop_event.wait(max(0.001, click_delay)):
+                                    break
+
+                        elif action["type"] == "image":
+                            image_path = action.get("image_path", "")
+                            button = action.get("button", "left")
+                            click_type = action.get("click_type", "single")
+                            retries = max(1, int(action.get("retries", 1)))
+                            clicks_per_trigger = 2 if click_type == "double" else 1
+                            found = False
+
+                            for attempt in range(retries):
+                                if self._stop_event.is_set():
+                                    break
+
+                                point = pyautogui.locateCenterOnScreen(image_path, confidence=0.8)
+                                if point:
+                                    found = True
+                                    target_x, target_y = int(point.x), int(point.y)
+                                    pyautogui.moveTo(target_x, target_y)
+                                    pyautogui.click(button=button, clicks=clicks_per_trigger)
+                                    if on_action:
+                                        on_action(
+                                            f"Action image: trouvé ({target_x}, {target_y}) fichier={image_path}"
+                                        )
+                                    break
+
+                                logger = get_structured_logger()
+                                if logger:
+                                    logger.log_message(
+                                        "automation_workers.py",
+                                        "Image introuvable pendant séquence",
+                                        level="WARNING",
+                                        context={
+                                            "worker": "SequenceWorker",
+                                            "action_type": "image",
+                                            "attempt": attempt + 1,
+                                            "retries": retries,
+                                            "image_path": image_path,
+                                        },
+                                    )
+
+                                if on_action:
+                                    on_action(
+                                        f"Image non trouvée ({attempt + 1}/{retries}) : {image_path}"
+                                    )
+
+                                retry_delay = interval
+                                if temporal_jitter_enabled:
+                                    retry_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
+                                if self._stop_event.wait(max(0.001, retry_delay)):
+                                    break
+
+                            if not found and on_action:
+                                on_action("Action image ignorée après épuisement des tentatives")
 
                         elif action["type"] == "keyboard":
                             keyboard.send(action["keys"])
                             if on_action:
                                 on_action(f"Action clavier: {action['keys']}")
 
-                        if self._stop_event.wait(interval):
+                        action_delay = interval
+                        if temporal_jitter_enabled:
+                            action_delay = random.uniform(temporal_jitter_min, temporal_jitter_max)
+
+                        if self._stop_event.wait(max(0.001, action_delay)):
                             break
 
-                    keep_running = repeat_sequence
+                    if self._stop_event.is_set() or not repeat_sequence:
+                        break
+
+                    if repeat_delay_seconds > 0 and self._stop_event.wait(repeat_delay_seconds):
+                        break
             except Exception as exc:
                 logger = get_structured_logger()
                 if logger:

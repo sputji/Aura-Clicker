@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from tkinter import filedialog
+
 import customtkinter as ctk
 
 from ..capture import capture_hotkey_combination, capture_mouse_position
+from ..macro_recorder import MacroRecorder
 from ..utils import safe_int
 from ..widgets import CTkListbox
 
@@ -24,9 +27,11 @@ class AdvancedWindow(ctk.CTkToplevel):
         self._on_start = on_start
         self._on_stop = on_stop
         self._on_save_state = on_save_state
+        self._macro_recorder = MacroRecorder()
 
         self._build_ui()
         self._load_state()
+        self._autosize_and_focus()
 
     def _build_ui(self) -> None:
         self.grid_columnconfigure((0, 1, 2), weight=1)
@@ -46,30 +51,41 @@ class AdvancedWindow(ctk.CTkToplevel):
 
         ctk.CTkLabel(mouse_frame, text="Actions de clic souris", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, columnspan=3, sticky="w", padx=12, pady=(12, 10))
 
-        ctk.CTkLabel(mouse_frame, text="X").grid(row=1, column=0, sticky="w", padx=(12, 4))
-        self.x_entry = ctk.CTkEntry(mouse_frame, width=100)
-        self.x_entry.grid(row=1, column=1, sticky="ew", pady=6)
+        ctk.CTkLabel(mouse_frame, text="Cible du clic").grid(row=1, column=0, columnspan=2, sticky="w", padx=12, pady=(0, 0))
+        self.target_mode = ctk.StringVar(value="coords")
+        ctk.CTkRadioButton(mouse_frame, text="Coordonnées", variable=self.target_mode, value="coords", command=self._toggle_target_mode).grid(row=2, column=0, sticky="w", padx=12, pady=(2, 0))
+        ctk.CTkRadioButton(mouse_frame, text="Image", variable=self.target_mode, value="image", command=self._toggle_target_mode).grid(row=2, column=1, sticky="w", padx=12, pady=(2, 0))
 
-        ctk.CTkLabel(mouse_frame, text="Y").grid(row=2, column=0, sticky="w", padx=(12, 4))
+        ctk.CTkLabel(mouse_frame, text="X").grid(row=3, column=0, sticky="w", padx=(12, 4))
+        self.x_entry = ctk.CTkEntry(mouse_frame, width=100)
+        self.x_entry.grid(row=3, column=1, sticky="ew", pady=6)
+
+        ctk.CTkLabel(mouse_frame, text="Y").grid(row=4, column=0, sticky="w", padx=(12, 4))
         self.y_entry = ctk.CTkEntry(mouse_frame, width=100)
-        self.y_entry.grid(row=2, column=1, sticky="ew", pady=6)
+        self.y_entry.grid(row=4, column=1, sticky="ew", pady=6)
 
         self.pick_btn = ctk.CTkButton(mouse_frame, text="◎", width=44, command=self._capture_target)
-        self.pick_btn.grid(row=1, column=2, rowspan=2, padx=(8, 12), pady=6)
+        self.pick_btn.grid(row=3, column=2, rowspan=2, padx=(8, 12), pady=6)
 
-        ctk.CTkLabel(mouse_frame, text="Bouton").grid(row=3, column=0, sticky="w", padx=12, pady=(8, 0))
+        ctk.CTkLabel(mouse_frame, text="Image (PNG/JPG)").grid(row=5, column=0, columnspan=2, sticky="w", padx=12, pady=(8, 0))
+        self.image_path_entry = ctk.CTkEntry(mouse_frame)
+        self.image_path_entry.grid(row=6, column=0, columnspan=2, sticky="ew", padx=12, pady=6)
+        self.browse_image_btn = ctk.CTkButton(mouse_frame, text="Parcourir", width=90, command=self._browse_image)
+        self.browse_image_btn.grid(row=6, column=2, padx=(8, 12), pady=6)
+
+        ctk.CTkLabel(mouse_frame, text="Bouton").grid(row=7, column=0, sticky="w", padx=12, pady=(8, 0))
         self.mouse_button = ctk.CTkComboBox(mouse_frame, values=["Gauche", "Droit"])
-        self.mouse_button.grid(row=4, column=0, columnspan=2, sticky="ew", padx=12, pady=6)
+        self.mouse_button.grid(row=8, column=0, columnspan=2, sticky="ew", padx=12, pady=6)
 
-        ctk.CTkLabel(mouse_frame, text="Type de clic").grid(row=5, column=0, sticky="w", padx=12, pady=(8, 0))
+        ctk.CTkLabel(mouse_frame, text="Type de clic").grid(row=9, column=0, sticky="w", padx=12, pady=(8, 0))
         self.click_type = ctk.CTkComboBox(mouse_frame, values=["Simple", "Double"])
-        self.click_type.grid(row=6, column=0, columnspan=2, sticky="ew", padx=12, pady=6)
+        self.click_type.grid(row=10, column=0, columnspan=2, sticky="ew", padx=12, pady=6)
 
-        ctk.CTkLabel(mouse_frame, text="Nombre de clics à cette position").grid(row=7, column=0, columnspan=2, sticky="w", padx=12, pady=(8, 0))
+        ctk.CTkLabel(mouse_frame, text="Nombre de clics / tentatives").grid(row=11, column=0, columnspan=2, sticky="w", padx=12, pady=(8, 0))
         self.repeats_entry = ctk.CTkEntry(mouse_frame)
-        self.repeats_entry.grid(row=8, column=0, columnspan=2, sticky="ew", padx=12, pady=6)
+        self.repeats_entry.grid(row=12, column=0, columnspan=2, sticky="ew", padx=12, pady=6)
 
-        ctk.CTkButton(mouse_frame, text="+ Ajouter action Clic", fg_color="#4F46E5", hover_color="#4338CA", command=self._add_mouse_action).grid(row=9, column=0, columnspan=3, sticky="ew", padx=12, pady=(10, 12))
+        ctk.CTkButton(mouse_frame, text="+ Ajouter action Clic", fg_color="#4F46E5", hover_color="#4338CA", command=self._add_mouse_action).grid(row=13, column=0, columnspan=3, sticky="ew", padx=12, pady=(10, 12))
 
         keyboard_frame = ctk.CTkFrame(self)
         keyboard_frame.grid(row=1, column=1, sticky="nsew", padx=7, pady=8)
@@ -84,6 +100,14 @@ class AdvancedWindow(ctk.CTkToplevel):
 
         ctk.CTkButton(keyboard_frame, text="Enregistrer les touches", command=self._capture_keys).grid(row=3, column=0, sticky="ew", padx=12, pady=6)
         ctk.CTkButton(keyboard_frame, text="+ Ajouter action Touche", fg_color="#4F46E5", hover_color="#4338CA", command=self._add_key_action).grid(row=4, column=0, sticky="ew", padx=12, pady=(6, 12))
+        self.record_macro_btn = ctk.CTkButton(
+            keyboard_frame,
+            text="Enregistrer une macro (F9 pour Stop)",
+            fg_color="#0EA5E9",
+            hover_color="#0284C7",
+            command=self._toggle_macro_recording,
+        )
+        self.record_macro_btn.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 12))
 
         sequence_frame = ctk.CTkFrame(self)
         sequence_frame.grid(row=1, column=2, rowspan=2, sticky="nsew", padx=(7, 14), pady=8)
@@ -105,7 +129,7 @@ class AdvancedWindow(ctk.CTkToplevel):
         ctk.CTkLabel(execution_frame, text="Paramètres d'exécution", font=ctk.CTkFont(size=18, weight="bold")).grid(row=0, column=0, columnspan=4, sticky="w", padx=12, pady=(12, 10))
 
         self.repeat_seq_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(execution_frame, text="Répéter la séquence", variable=self.repeat_seq_var).grid(row=1, column=0, columnspan=2, sticky="w", padx=12, pady=4)
+        ctk.CTkCheckBox(execution_frame, text="Répéter la séquence continuellement", variable=self.repeat_seq_var).grid(row=1, column=0, columnspan=2, sticky="w", padx=12, pady=4)
 
         self.humanized_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(execution_frame, text="Mode humanisé exclusif (jitter)", variable=self.humanized_var).grid(row=1, column=2, columnspan=2, sticky="w", padx=12, pady=4)
@@ -122,11 +146,26 @@ class AdvancedWindow(ctk.CTkToplevel):
         self.jitter_entry = ctk.CTkEntry(execution_frame, width=100)
         self.jitter_entry.grid(row=3, column=1, sticky="w", pady=(0, 8))
 
-        self.adv_status = ctk.CTkLabel(execution_frame, text="Prêt")
-        self.adv_status.grid(row=3, column=2, columnspan=2, sticky="w", padx=12, pady=(0, 8))
+        ctk.CTkLabel(execution_frame, text="Délai entre répétitions (s)").grid(row=3, column=2, sticky="w", padx=12, pady=(0, 8))
+        self.repeat_delay_entry = ctk.CTkEntry(execution_frame, width=120)
+        self.repeat_delay_entry.grid(row=3, column=3, sticky="w", pady=(0, 8))
 
-        ctk.CTkButton(execution_frame, text="Démarrer (F3)", fg_color="#10B981", hover_color="#059669", command=self._start).grid(row=4, column=0, columnspan=2, sticky="ew", padx=12, pady=(4, 12))
-        ctk.CTkButton(execution_frame, text="Arrêter (F4)", fg_color="#EF4444", hover_color="#DC2626", command=self._stop).grid(row=4, column=2, columnspan=2, sticky="ew", padx=12, pady=(4, 12))
+        self.temporal_jitter_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(execution_frame, text="Jitter temporel", variable=self.temporal_jitter_var).grid(row=4, column=0, columnspan=2, sticky="w", padx=12, pady=(0, 8))
+
+        ctk.CTkLabel(execution_frame, text="Min (s)").grid(row=4, column=2, sticky="e", padx=(0, 6), pady=(0, 8))
+        self.temporal_jitter_min_entry = ctk.CTkEntry(execution_frame, width=100)
+        self.temporal_jitter_min_entry.grid(row=4, column=3, sticky="w", pady=(0, 8))
+
+        ctk.CTkLabel(execution_frame, text="Max (s)").grid(row=5, column=2, sticky="e", padx=(0, 6), pady=(0, 8))
+        self.temporal_jitter_max_entry = ctk.CTkEntry(execution_frame, width=100)
+        self.temporal_jitter_max_entry.grid(row=5, column=3, sticky="w", pady=(0, 8))
+
+        self.adv_status = ctk.CTkLabel(execution_frame, text="Prêt")
+        self.adv_status.grid(row=5, column=0, columnspan=2, sticky="w", padx=12, pady=(0, 8))
+
+        ctk.CTkButton(execution_frame, text="Démarrer (F3)", fg_color="#10B981", hover_color="#059669", command=self._start).grid(row=6, column=0, columnspan=2, sticky="ew", padx=12, pady=(4, 12))
+        ctk.CTkButton(execution_frame, text="Arrêter (F4)", fg_color="#EF4444", hover_color="#DC2626", command=self._stop).grid(row=6, column=2, columnspan=2, sticky="ew", padx=12, pady=(4, 12))
 
         history_frame = ctk.CTkFrame(self)
         history_frame.grid(row=3, column=0, columnspan=3, sticky="nsew", padx=14, pady=(0, 14))
@@ -138,6 +177,9 @@ class AdvancedWindow(ctk.CTkToplevel):
         self.interval_s_entry.delete(0, "end")
         self.interval_ms_entry.delete(0, "end")
         self.jitter_entry.delete(0, "end")
+        self.repeat_delay_entry.delete(0, "end")
+        self.temporal_jitter_min_entry.delete(0, "end")
+        self.temporal_jitter_max_entry.delete(0, "end")
 
         cfg = self._state.advanced_execution
         self.repeat_seq_var.set(cfg.repeat_sequence)
@@ -145,14 +187,21 @@ class AdvancedWindow(ctk.CTkToplevel):
         self.interval_ms_entry.insert(0, str(cfg.interval_milliseconds))
         self.humanized_var.set(cfg.humanized_mode)
         self.jitter_entry.insert(0, str(cfg.humanized_jitter))
+        self.repeat_delay_entry.insert(0, str(cfg.repeat_delay_seconds))
+        self.temporal_jitter_var.set(cfg.temporal_jitter_enabled)
+        self.temporal_jitter_min_entry.insert(0, str(cfg.temporal_jitter_min))
+        self.temporal_jitter_max_entry.insert(0, str(cfg.temporal_jitter_max))
 
         labels = [self._format_action(item) for item in self._state.sequence_actions]
         self.listbox.set_items(labels)
 
+        self.target_mode.set("coords")
         self.mouse_button.set("Gauche")
         self.click_type.set("Simple")
+        self.image_path_entry.delete(0, "end")
         self.repeats_entry.delete(0, "end")
         self.repeats_entry.insert(0, "1")
+        self._toggle_target_mode()
 
     def refresh_from_state(self) -> None:
         self.listbox.clear()
@@ -187,19 +236,33 @@ class AdvancedWindow(ctk.CTkToplevel):
         self.adv_status.configure(text=f"Touches capturées: {combo}")
 
     def _add_mouse_action(self) -> None:
-        x = safe_int(self.x_entry.get(), default=0)
-        y = safe_int(self.y_entry.get(), default=0)
         repeats = safe_int(self.repeats_entry.get(), default=1, minimum=1)
         button = "left" if self.mouse_button.get() == "Gauche" else "right"
         click_type = "single" if self.click_type.get() == "Simple" else "double"
 
-        action = {
-            "type": "mouse",
-            "coords": (x, y),
-            "button": button,
-            "click_type": click_type,
-            "repeats": repeats,
-        }
+        if self.target_mode.get() == "image":
+            image_path = self.image_path_entry.get().strip()
+            if not image_path:
+                self.adv_status.configure(text="Sélectionnez une image avant d'ajouter l'action")
+                return
+            action = {
+                "type": "image",
+                "image_path": image_path,
+                "button": button,
+                "click_type": click_type,
+                "retries": repeats,
+            }
+        else:
+            x = safe_int(self.x_entry.get(), default=0)
+            y = safe_int(self.y_entry.get(), default=0)
+            action = {
+                "type": "mouse",
+                "coords": (x, y),
+                "button": button,
+                "click_type": click_type,
+                "repeats": repeats,
+            }
+
         self._state.sequence_actions.append(action)
         self.listbox.insert(self._format_action(action))
         self._save_runtime_state()
@@ -221,6 +284,12 @@ class AdvancedWindow(ctk.CTkToplevel):
             button = "Gauche" if action["button"] == "left" else "Droit"
             click_type = "Simple" if action["click_type"] == "single" else "Double"
             return f"[Pos: {x}, {y}] | [Bouton: {button}, Type: {click_type}] | [Clics: {action['repeats']}]"
+        if action["type"] == "image":
+            image_path = action.get("image_path", "")
+            button = "Gauche" if action.get("button") == "left" else "Droit"
+            click_type = "Simple" if action.get("click_type") == "single" else "Double"
+            retries = int(action.get("retries", 1))
+            return f"[Image: {image_path}] | [Bouton: {button}, Type: {click_type}] | [Tentatives: {retries}]"
         return f"[Touche: {action['keys'].upper()}]"
 
     def _delete_action(self) -> None:
@@ -236,12 +305,21 @@ class AdvancedWindow(ctk.CTkToplevel):
         self._save_runtime_state()
 
     def _build_execution_config(self) -> dict:
+        jitter_min = _safe_float(self.temporal_jitter_min_entry.get(), default=0.008, minimum=0.001)
+        jitter_max = _safe_float(self.temporal_jitter_max_entry.get(), default=0.015, minimum=0.001)
+        if jitter_min > jitter_max:
+            jitter_min, jitter_max = jitter_max, jitter_min
+
         return {
             "repeat_sequence": self.repeat_seq_var.get(),
             "interval_seconds": safe_int(self.interval_s_entry.get(), default=1, minimum=0),
             "interval_milliseconds": safe_int(self.interval_ms_entry.get(), default=0, minimum=0),
             "humanized_mode": self.humanized_var.get(),
             "humanized_jitter": safe_int(self.jitter_entry.get(), default=3, minimum=0),
+            "repeat_delay_seconds": _safe_float(self.repeat_delay_entry.get(), default=0.0, minimum=0.0),
+            "temporal_jitter_enabled": self.temporal_jitter_var.get(),
+            "temporal_jitter_min": jitter_min,
+            "temporal_jitter_max": jitter_max,
         }
 
     def _start(self) -> None:
@@ -274,4 +352,84 @@ class AdvancedWindow(ctk.CTkToplevel):
         self._state.advanced_execution.interval_milliseconds = cfg["interval_milliseconds"]
         self._state.advanced_execution.humanized_mode = cfg["humanized_mode"]
         self._state.advanced_execution.humanized_jitter = cfg["humanized_jitter"]
+        self._state.advanced_execution.repeat_delay_seconds = cfg["repeat_delay_seconds"]
+        self._state.advanced_execution.temporal_jitter_enabled = cfg["temporal_jitter_enabled"]
+        self._state.advanced_execution.temporal_jitter_min = cfg["temporal_jitter_min"]
+        self._state.advanced_execution.temporal_jitter_max = cfg["temporal_jitter_max"]
         self._on_save_state()
+
+    def _browse_image(self) -> None:
+        image_path = filedialog.askopenfilename(
+            title="Sélectionner une image cible",
+            filetypes=[("Images", "*.png *.jpg *.jpeg *.webp"), ("Tous les fichiers", "*.*")],
+        )
+        if not image_path:
+            return
+        self.image_path_entry.delete(0, "end")
+        self.image_path_entry.insert(0, image_path)
+        self.target_mode.set("image")
+        self._toggle_target_mode()
+
+    def _toggle_target_mode(self) -> None:
+        is_image_mode = self.target_mode.get() == "image"
+        state_coords = "disabled" if is_image_mode else "normal"
+        state_image = "normal" if is_image_mode else "disabled"
+
+        self.x_entry.configure(state=state_coords)
+        self.y_entry.configure(state=state_coords)
+        self.pick_btn.configure(state=state_coords)
+        self.image_path_entry.configure(state=state_image)
+        self.browse_image_btn.configure(state=state_image)
+
+    def _toggle_macro_recording(self) -> None:
+        if self._macro_recorder.running:
+            self._macro_recorder.stop()
+            self.record_macro_btn.configure(text="Enregistrer une macro (F9 pour Stop)")
+            self.adv_status.configure(text="Arrêt de l'enregistrement macro demandé")
+            return
+
+        self.record_macro_btn.configure(text="Stop enregistrement (F9)")
+
+        def on_action(action: dict) -> None:
+            self.after(0, lambda: self._append_recorded_action(action))
+
+        def on_status(message: str) -> None:
+            self.after(0, lambda: self._on_macro_status(message))
+
+        self._macro_recorder.start(on_action=on_action, on_status=on_status, stop_key="f9")
+
+    def _append_recorded_action(self, action: dict) -> None:
+        self._state.sequence_actions.append(action)
+        self.listbox.insert(self._format_action(action))
+        self._save_runtime_state()
+
+    def _on_macro_status(self, message: str) -> None:
+        self.adv_status.configure(text=message)
+        if "arrêté" in message.lower():
+            self.record_macro_btn.configure(text="Enregistrer une macro (F9 pour Stop)")
+
+    def _autosize_and_focus(self) -> None:
+        self.update_idletasks()
+        req_w = self.winfo_reqwidth()
+        req_h = self.winfo_reqheight()
+        self.minsize(max(1080, req_w), max(700, req_h))
+        self.lift()
+        self.attributes("-topmost", True)
+        self.focus_force()
+        self.after(220, lambda: self.attributes("-topmost", False))
+
+    def destroy(self) -> None:
+        if self._macro_recorder.running:
+            self._macro_recorder.stop()
+        super().destroy()
+
+
+def _safe_float(value: str, default: float = 0.0, minimum: float | None = None) -> float:
+    try:
+        number = float(value.strip())
+    except (ValueError, AttributeError):
+        return default
+
+    if minimum is not None:
+        return max(number, minimum)
+    return number

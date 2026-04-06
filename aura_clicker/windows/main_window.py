@@ -6,6 +6,17 @@ from ..capture import capture_mouse_position
 from ..utils import safe_int
 
 
+def _safe_float(value: str, default: float = 0.0, minimum: float | None = None) -> float:
+    try:
+        number = float(value.strip())
+    except (ValueError, AttributeError):
+        return default
+
+    if minimum is not None:
+        return max(number, minimum)
+    return number
+
+
 class MainWindow(ctk.CTkFrame):
     def __init__(
         self,
@@ -105,6 +116,21 @@ class MainWindow(ctk.CTkFrame):
         self.click_type = ctk.CTkComboBox(options_frame, values=["Simple", "Double"])
         self.click_type.grid(row=2, column=1, sticky="ew", padx=14, pady=(4, 12))
 
+        self.temporal_jitter_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(options_frame, text="Jitter temporel", variable=self.temporal_jitter_var).grid(row=3, column=0, sticky="w", padx=14, pady=(0, 8))
+
+        min_row = ctk.CTkFrame(options_frame, fg_color="transparent")
+        min_row.grid(row=3, column=1, sticky="ew", padx=14, pady=(0, 8))
+        ctk.CTkLabel(min_row, text="Min (s)").pack(side="left", padx=(0, 6))
+        self.temporal_jitter_min_entry = ctk.CTkEntry(min_row, width=95)
+        self.temporal_jitter_min_entry.pack(side="left")
+
+        max_row = ctk.CTkFrame(options_frame, fg_color="transparent")
+        max_row.grid(row=4, column=1, sticky="ew", padx=14, pady=(0, 12))
+        ctk.CTkLabel(max_row, text="Max (s)").pack(side="left", padx=(0, 6))
+        self.temporal_jitter_max_entry = ctk.CTkEntry(max_row, width=95)
+        self.temporal_jitter_max_entry.pack(side="left")
+
         controls_frame = ctk.CTkFrame(self)
         controls_frame.grid(row=3, column=0, columnspan=2, sticky="ew", pady=8)
         controls_frame.grid_columnconfigure((0, 1, 2), weight=1)
@@ -162,6 +188,8 @@ class MainWindow(ctk.CTkFrame):
         self.repeat_count_entry.delete(0, "end")
         self.x_entry.delete(0, "end")
         self.y_entry.delete(0, "end")
+        self.temporal_jitter_min_entry.delete(0, "end")
+        self.temporal_jitter_max_entry.delete(0, "end")
 
         data = self._state.main_click
         self.h_entry.insert(0, str(data.hours))
@@ -175,6 +203,9 @@ class MainWindow(ctk.CTkFrame):
         self.y_entry.insert(0, str(data.y))
         self.mouse_button.set("Gauche" if data.mouse_button == "left" else "Droit")
         self.click_type.set("Simple" if data.click_type == "single" else "Double")
+        self.temporal_jitter_var.set(data.temporal_jitter_enabled)
+        self.temporal_jitter_min_entry.insert(0, str(data.temporal_jitter_min))
+        self.temporal_jitter_max_entry.insert(0, str(data.temporal_jitter_max))
         self.topmost_var.set(data.always_on_top)
         self._toggle_topmost()
 
@@ -197,6 +228,11 @@ class MainWindow(ctk.CTkFrame):
         self._set_status(f"Coordonnées capturées: X={x}, Y={y}")
 
     def _build_click_config(self) -> dict:
+        jitter_min = _safe_float(self.temporal_jitter_min_entry.get(), default=0.008, minimum=0.001)
+        jitter_max = _safe_float(self.temporal_jitter_max_entry.get(), default=0.015, minimum=0.001)
+        if jitter_min > jitter_max:
+            jitter_min, jitter_max = jitter_max, jitter_min
+
         return {
             "hours": safe_int(self.h_entry.get(), minimum=0),
             "minutes": safe_int(self.m_entry.get(), minimum=0),
@@ -209,6 +245,9 @@ class MainWindow(ctk.CTkFrame):
             "y": safe_int(self.y_entry.get(), default=0),
             "mouse_button": "left" if self.mouse_button.get() == "Gauche" else "right",
             "click_type": "single" if self.click_type.get() == "Simple" else "double",
+            "temporal_jitter_enabled": self.temporal_jitter_var.get(),
+            "temporal_jitter_min": jitter_min,
+            "temporal_jitter_max": jitter_max,
         }
 
     def _start(self) -> None:

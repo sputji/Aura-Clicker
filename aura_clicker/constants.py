@@ -1,5 +1,5 @@
 APP_NAME = "Aura-Clicker"
-APP_VERSION = "0.1.2"
+APP_VERSION = "0.1.4"
 APP_AUTHOR = "Aura Néo"
 APP_CONTACT = "contact@auraneo.fr"
 APP_WINDOW_TITLE = "Aura-Clicker Manager"

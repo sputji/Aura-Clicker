@@ -22,15 +22,22 @@ class MainClickSettings:
     mouse_button: str = "left"
     click_type: str = "single"
     always_on_top: bool = False
+    temporal_jitter_enabled: bool = False
+    temporal_jitter_min: float = 0.008
+    temporal_jitter_max: float = 0.015
 
 
 @dataclass
 class AdvancedExecutionSettings:
     repeat_sequence: bool = False
+    repeat_delay_seconds: float = 0.0
     interval_seconds: int = 1
     interval_milliseconds: int = 0
     humanized_mode: bool = True
     humanized_jitter: int = 3
+    temporal_jitter_enabled: bool = False
+    temporal_jitter_min: float = 0.008
+    temporal_jitter_max: float = 0.015
 
 
 @dataclass
