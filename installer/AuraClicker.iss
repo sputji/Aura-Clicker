@@ -1,14 +1,14 @@
 [Setup]
 AppId={{DDAAB0A7-CF81-4CF5-86DE-4B6F0C53C641}
 AppName=Aura-Clicker
-AppVersion=0.1.5
+AppVersion=0.1.6
 AppPublisher=Aura Néo
 AppPublisherURL=https://auraneo.fr
 DefaultDirName={autopf}\Aura-Clicker
 DefaultGroupName=Aura-Clicker
 DisableProgramGroupPage=yes
 OutputDir=..\dist-installer
-OutputBaseFilename=Aura-Clicker-Setup-0.1.5
+OutputBaseFilename=Aura-Clicker-Setup-0.1.6
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

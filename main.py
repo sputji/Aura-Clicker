@@ -334,18 +334,26 @@ class AuraClickerApplication:
         self.toggle_main_click(config, self.main_window._set_status)
 
     def _hotkey_start_advanced(self) -> None:
-        config = {
-            "repeat_sequence": self.state.advanced_execution.repeat_sequence,
-            "repeat_delay_seconds": self.state.advanced_execution.repeat_delay_seconds,
-            "interval_seconds": self.state.advanced_execution.interval_seconds,
-            "interval_milliseconds": self.state.advanced_execution.interval_milliseconds,
-            "humanized_mode": self.state.advanced_execution.humanized_mode,
-            "humanized_jitter": self.state.advanced_execution.humanized_jitter,
-            "temporal_jitter_enabled": self.state.advanced_execution.temporal_jitter_enabled,
-            "temporal_jitter_min": self.state.advanced_execution.temporal_jitter_min,
-            "temporal_jitter_max": self.state.advanced_execution.temporal_jitter_max,
-            "language": self.state.current_language,
-        }
+        # Récupère les valeurs actuelles de la fenêtre si elle est ouverte
+        if self.advanced_window and self.advanced_window.winfo_exists():
+            config = self.advanced_window._build_execution_config()
+            sequence = list(self.state.sequence_actions)
+            self._save_advanced_to_state(config)
+            self._persist_state()
+        else:
+            config = {
+                "repeat_sequence": self.state.advanced_execution.repeat_sequence,
+                "repeat_delay_seconds": self.state.advanced_execution.repeat_delay_seconds,
+                "interval_seconds": self.state.advanced_execution.interval_seconds,
+                "interval_milliseconds": self.state.advanced_execution.interval_milliseconds,
+                "humanized_mode": self.state.advanced_execution.humanized_mode,
+                "humanized_jitter": self.state.advanced_execution.humanized_jitter,
+                "temporal_jitter_enabled": self.state.advanced_execution.temporal_jitter_enabled,
+                "temporal_jitter_min": self.state.advanced_execution.temporal_jitter_min,
+                "temporal_jitter_max": self.state.advanced_execution.temporal_jitter_max,
+                "language": self.state.current_language,
+            }
+            sequence = list(self.state.sequence_actions)
 
         def status(msg: str) -> None:
             if self.advanced_window and self.advanced_window.winfo_exists():
@@ -353,7 +361,7 @@ class AuraClickerApplication:
             elif self.main_window:
                 self.main_window._set_status(msg)
 
-        self.sequence_worker.start(config, list(self.state.sequence_actions), status, self.history.push)
+        self.sequence_worker.start(config, sequence, status, self.history.push)
 
     def _hotkey_start_key_presser(self) -> None:
         config = {
