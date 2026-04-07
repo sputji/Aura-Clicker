@@ -67,6 +67,14 @@ class ClickWorker(BaseWorker):
                 on_status(format_text(language, "worker_click_running"))
                 if on_action:
                     on_action(format_text(language, "worker_click_started"))
+                    # Log des paramètres actifs
+                    mode_info = []
+                    if humanized_mode:
+                        mode_info.append(f"Humanisé: ±{humanized_jitter}px")
+                    if temporal_jitter_enabled:
+                        mode_info.append(f"Jitter temporel: +{temporal_jitter_min:.3f}s-{temporal_jitter_max:.3f}s")
+                    if mode_info:
+                        on_action(f"Modes actifs: {', '.join(mode_info)}")
                 while not self._stop_event.is_set() and (infinite or remaining > 0):
                     if config["current_position"]:
                         if humanized_mode and humanized_jitter > 0:
@@ -206,8 +214,16 @@ class SequenceWorker(BaseWorker):
                     on_status(format_text(language, "worker_seq_empty"))
                     return
 
-                total_interval = int(config["interval_seconds"]) + (int(config["interval_milliseconds"]) / 1000.0)
-                total_interval = max(0.0, total_interval)
+                # Parse interval values with proper type conversion
+                interval_sec = float(config.get("interval_seconds", 0))
+                interval_ms = float(config.get("interval_milliseconds", 0))
+                total_interval = interval_sec + (interval_ms / 1000.0)
+                # Allow minimum of 0.001s (1ms) for fast clicking
+                total_interval = max(0.001, total_interval) if total_interval > 0 else 0.0
+                
+                # Log interval for debugging
+                if on_action:
+                    on_action(f"Intervalle configuré: {interval_sec}s + {interval_ms}ms = {total_interval:.3f}s")
                 repeat_raw = config.get("repeat_sequence", False)
                 repeat_sequence = repeat_raw is True or str(repeat_raw).strip().lower() in {"1", "true", "yes", "on"}
                 repeat_delay_seconds = max(0.0, float(config.get("repeat_delay_seconds", 0.0)))
@@ -222,6 +238,16 @@ class SequenceWorker(BaseWorker):
                 on_status(format_text(language, "worker_seq_running"))
                 if on_action:
                     on_action(format_text(language, "worker_seq_started"))
+                    # Log des paramètres actifs
+                    mode_info = []
+                    if humanized_mode:
+                        mode_info.append(f"Humanisé: ±{jitter}px")
+                    if temporal_jitter_enabled:
+                        mode_info.append(f"Jitter temporel: +{temporal_jitter_min:.3f}s-{temporal_jitter_max:.3f}s")
+                    if repeat_sequence:
+                        mode_info.append("Répétition: ON")
+                    if mode_info:
+                        on_action(f"Modes actifs: {', '.join(mode_info)}")
 
                 def _compute_delay(base: float) -> float:
                     if temporal_jitter_enabled:

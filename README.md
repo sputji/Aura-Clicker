@@ -159,6 +159,12 @@ Les profils sont stockés en `.aura_profile.json` et peuvent être partagés ent
 
 ## Changelog
 
+### v0.1.6 — 2026-04-07
+- **Correction critique** : Les raccourcis clavier F3 et F6 utilisent maintenant les valeurs actuelles des champs (intervalles, jitter, etc.) au lieu des valeurs sauvegardées
+- Ajout de logs de diagnostic visibles dans l'historique : affichage des modes actifs au démarrage (Humanisé, Jitter temporel, Répétition)
+- Calcul d'intervalle robuste avec conversion `float()` pour supporter les petites valeurs (1ms minimum)
+- Amélioration de la cohérence entre boutons de démarrage et hotkeys
+
 ### v0.1.5 — 2026-04-07
 - Correction du calcul exact de l'intervalle des séquences avancées: `secondes + millisecondes / 1000`
 - Correctif critique de la répétition continue des séquences avancées
